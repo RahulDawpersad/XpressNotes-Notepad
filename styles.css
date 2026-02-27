@@ -697,6 +697,10 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-sidebar);
+    z-index: 1;
 }
 
 .sidebar-auth button {
