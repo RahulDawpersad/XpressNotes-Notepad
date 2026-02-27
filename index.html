@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon_atoms.ico" type="image/x-icon">
+    <title>XpressNotes</title>
+    <!-- Inter Font (Perplexity AI Font Family) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon">
+                        <i class="fa-solid fa-feather-pointed"></i>
+                    </div>
+                    <h1 class="logo-text">XpressNotes</h1>
+                </div>
+                <button class="sidebar-toggle-close" id="sidebarCloseBtn" title="Close Sidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <button class="new-note-btn" id="newNoteBtn">
+                <i class="fa-solid fa-plus"></i>
+                <span>New Note</span>
+            </button>
+
+            <div class="sidebar-section-label">
+                <span>Your Notes</span>
+                <span class="note-count" id="noteCount">0</span>
+            </div>
+
+            <ul class="notes-list" id="savedNotesList"></ul>
+            <div class="no-notes-message" id="noNotesMessage">
+                <i class="fa-regular fa-note-sticky"></i>
+                <p>No notes yet</p>
+                <span>Create your first note to get started</span>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="delete-all-btn" id="deleteAllBtn" title="Delete All Notes">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Delete All</span>
+                </button>
+            </div>
+
+            <!-- Auth Section -->
+            <div class="sidebar-auth" id="authSection">
+                <button id="signInOpenBtn">Sign In</button>
+                <button id="signUpOpenBtn">Sign Up</button>
+                <div id="userProfile" style="display: none;">
+                    <i class="fa-solid fa-user"></i>
+                    <span id="userEmail"></span>
+                </div>
+                <button id="signOutBtn" style="display: none;">Sign Out</button>
+            </div>
+
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle" id="sidebarToggleBtn" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-app">XpressNotes</span>
+                        <i class="fa-solid fa-chevron-right breadcrumb-sep"></i>
+                        <span class="breadcrumb-current" id="breadcrumbCurrent">New Note</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button class="topbar-btn" id="saveBtn" title="Save Note">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save</span>
+                    </button>
+                    <button class="topbar-btn" id="clearBtn" title="Clear">
+                        <i class="fa-solid fa-eraser"></i>
+                        <span>Clear</span>
+                    </button>
+                    <button class="topbar-btn theme-btn" id="themeBtn" title="Toggle Theme">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Editor Area -->
+            <div class="editor-area">
+                <div class="editor-container">
+                    <input type="text" id="noteTitle" class="note-title-input" placeholder="Untitled Note"
+                        autocomplete="off">
+                    <div class="editor-meta" id="editorMeta">
+                        <span id="charCount">0 characters</span>
+                        <span class="meta-sep">·</span>
+                        <span id="wordCount">0 words</span>
+                    </div>
+                    <textarea id="notepad" class="note-textarea"
+                        placeholder="Start writing your thoughts..."></textarea>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-check-circle"></i>
+        <span id="toastMessage">Note saved successfully</span>
+    </div>
+
+    <!-- Sign In Modal -->
+    <div class="modal" id="signInModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeSignIn">&times;</span>
+            <h2>Sign In</h2>
+            <input type="email" id="signInEmail" placeholder="Email" autocomplete="email">
+            <input type="password" id="signInPassword" placeholder="Password" autocomplete="current-password">
+            <button id="signInSubmit">Sign In</button>
+        </div>
+    </div>
+
+    <!-- Sign Up Modal -->
+    <div class="modal" id="signUpModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeSignUp">&times;</span>
+            <h2>Sign Up</h2>
+            <input type="email" id="signUpEmail" placeholder="Email" autocomplete="email">
+            <input type="password" id="signUpPassword" placeholder="Password" autocomplete="new-password">
+            <button id="signUpSubmit">Sign Up</button>
+        </div>
+    </div>
+
+    <!-- Link to Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
