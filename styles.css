@@ -71,6 +71,7 @@ body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     transition: background-color var(--transition), color var(--transition);
 }
@@ -81,6 +82,7 @@ body {
 .app-wrapper {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     width: 100%;
 }
 
@@ -91,13 +93,14 @@ body {
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);
     height: 100vh;
+    height: 100dvh;
     background-color: var(--bg-sidebar);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     transition: transform 0.3s ease, opacity 0.3s ease;
     z-index: 100;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .sidebar-header {
@@ -105,6 +108,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 16px 16px 12px;
+    flex-shrink: 0;
 }
 
 .sidebar-logo {
@@ -165,6 +169,7 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+    flex-shrink: 0;
 }
 
 .new-note-btn:hover {
@@ -189,6 +194,7 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--text-tertiary);
+    flex-shrink: 0;
 }
 
 .note-count {
@@ -206,6 +212,7 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 0 8px;
+    min-height: 0;
 }
 
 .notes-list::-webkit-scrollbar {
@@ -308,6 +315,8 @@ body {
     padding: 40px 20px;
     text-align: center;
     color: var(--text-tertiary);
+    flex: 1;
+    min-height: 0;
 }
 
 .no-notes-message i {
@@ -331,6 +340,7 @@ body {
 .sidebar-footer {
     padding: 12px;
     border-top: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
 .delete-all-btn {
@@ -697,10 +707,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    position: sticky;
-    bottom: 0;
+    flex-shrink: 0;
     background: var(--bg-sidebar);
-    z-index: 1;
 }
 
 .sidebar-auth button {
@@ -767,8 +775,13 @@ body {
         position: fixed;
         left: 0;
         top: 0;
+        height: 100vh;
+        height: 100dvh;
         transform: translateX(-100%);
         box-shadow: var(--shadow-lg);
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 
     .sidebar.open {
@@ -816,6 +829,39 @@ body {
 
     .sidebar-auth {
         padding: 16px;
+        /* Remove sticky positioning on mobile - let it flow naturally */
+        position: relative;
+        bottom: auto;
+    }
+
+    /* Ensure no-notes-message doesn't push auth off screen */
+    .no-notes-message {
+        flex: 0 0 auto;
+        padding: 24px 20px;
+    }
+
+    /* Ensure notes list doesn't take all space on mobile */
+    .notes-list {
+        flex: 1 1 auto;
+        max-height: calc(100dvh - 320px);
+        overflow-y: auto;
+    }
+
+    /* Sidebar footer should not take extra space when empty */
+    .sidebar-footer {
+        flex-shrink: 0;
+    }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+    .sidebar {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .notes-list {
+        max-height: calc(100dvh - 340px);
     }
 }
 
