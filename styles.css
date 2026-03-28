@@ -917,3 +917,19 @@ input:focus:not(:focus-visible),
 textarea:focus:not(:focus-visible) {
     outline: none;
 }
+
+/* new rules:testing  */
+/* ====================== REMOVE GREEN FOCUS OUTLINE ====================== */
+/* Title input - no green outline on click/focus */
+.note-title-input:focus,
+.note-title-input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Textarea - no green outline on click/focus */
+.note-textarea:focus,
+.note-textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
