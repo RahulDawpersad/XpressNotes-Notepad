@@ -577,8 +577,19 @@ body {
     color: var(--text-tertiary);
 }
 
+/* ====================== TEXTAREA SCROLLBAR ====================== */
 .note-textarea::-webkit-scrollbar {
-    width: 0;
+    width: 6px;
+}
+.note-textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+.note-textarea::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+.note-textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
 }
 
 /* ============================================
