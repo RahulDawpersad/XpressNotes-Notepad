@@ -6,9 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon_atoms.ico" type="image/x-icon">
     <title>XpressNotes</title>
+    <!-- Inter Font (Perplexity AI Font Family) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -63,6 +65,7 @@
                 </div>
                 <button id="signOutBtn" style="display: none;">Sign Out</button>
             </div>
+
         </aside>
 
         <!-- Main Content -->
@@ -99,122 +102,13 @@
                 <div class="editor-container">
                     <input type="text" id="noteTitle" class="note-title-input" placeholder="Untitled Note"
                         autocomplete="off">
-
                     <div class="editor-meta" id="editorMeta">
                         <span id="charCount">0 characters</span>
                         <span class="meta-sep">·</span>
                         <span id="wordCount">0 words</span>
                     </div>
-
-                    <!-- ── Formatting Toolbar ── -->
-                    <div class="formatting-toolbar" id="formattingToolbar">
-                        <!-- Text style -->
-                        <button class="fmt-btn" data-cmd="bold" title="Bold (Ctrl+B)">
-                            <i class="fa-solid fa-bold"></i>
-                        </button>
-                        <button class="fmt-btn" data-cmd="italic" title="Italic (Ctrl+I)">
-                            <i class="fa-solid fa-italic"></i>
-                        </button>
-                        <button class="fmt-btn" data-cmd="underline" title="Underline (Ctrl+U)">
-                            <i class="fa-solid fa-underline"></i>
-                        </button>
-                        <button class="fmt-btn" data-cmd="strikeThrough" title="Strikethrough">
-                            <i class="fa-solid fa-strikethrough"></i>
-                        </button>
-
-                        <div class="toolbar-sep"></div>
-
-                        <!-- Heading sizes -->
-                        <button class="fmt-btn fmt-label" data-cmd="formatBlock" data-val="h1" title="Heading 1">H1</button>
-                        <button class="fmt-btn fmt-label" data-cmd="formatBlock" data-val="h2" title="Heading 2">H2</button>
-                        <button class="fmt-btn fmt-label" data-cmd="formatBlock" data-val="h3" title="Heading 3">H3</button>
-                        <button class="fmt-btn fmt-label" data-cmd="formatBlock" data-val="p" title="Normal text">¶</button>
-
-                        <div class="toolbar-sep"></div>
-
-                        <!-- Text colour -->
-                        <div class="color-picker-wrap" title="Text Color">
-                            <button class="fmt-btn color-swatch-btn" id="textColorBtn">
-                                <i class="fa-solid fa-font"></i>
-                                <span class="color-indicator" id="textColorIndicator" style="background:#1A1A1A"></span>
-                            </button>
-                            <div class="color-palette" id="textColorPalette">
-                                <span class="palette-label">Text Color</span>
-                                <div class="palette-swatches">
-                                    <button class="swatch" data-color="#1A1A1A" style="background:#1A1A1A" title="Black"></button>
-                                    <button class="swatch" data-color="#EF4444" style="background:#EF4444" title="Red"></button>
-                                    <button class="swatch" data-color="#F97316" style="background:#F97316" title="Orange"></button>
-                                    <button class="swatch" data-color="#EAB308" style="background:#EAB308" title="Yellow"></button>
-                                    <button class="swatch" data-color="#22C55E" style="background:#22C55E" title="Green"></button>
-                                    <button class="swatch" data-color="#20B2AA" style="background:#20B2AA" title="Teal"></button>
-                                    <button class="swatch" data-color="#3B82F6" style="background:#3B82F6" title="Blue"></button>
-                                    <button class="swatch" data-color="#8B5CF6" style="background:#8B5CF6" title="Purple"></button>
-                                    <button class="swatch" data-color="#EC4899" style="background:#EC4899" title="Pink"></button>
-                                    <button class="swatch" data-color="#6B7280" style="background:#6B7280" title="Gray"></button>
-                                    <button class="swatch" data-color="#FFFFFF" style="background:#FFFFFF;border:1px solid #ccc" title="White"></button>
-                                    <label class="swatch swatch-custom" title="Custom color">
-                                        <i class="fa-solid fa-plus"></i>
-                                        <input type="color" id="textColorCustom" value="#1A1A1A">
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Highlight colour -->
-                        <div class="color-picker-wrap" title="Highlight Color">
-                            <button class="fmt-btn color-swatch-btn" id="highlightBtn">
-                                <i class="fa-solid fa-highlighter"></i>
-                                <span class="color-indicator" id="highlightIndicator" style="background:#FEF08A"></span>
-                            </button>
-                            <div class="color-palette" id="highlightPalette">
-                                <span class="palette-label">Highlight Color</span>
-                                <div class="palette-swatches">
-                                    <button class="swatch" data-color="transparent" style="background:transparent;border:1px solid #ccc" title="No highlight">
-                                        <i class="fa-solid fa-ban" style="font-size:10px;color:#aaa"></i>
-                                    </button>
-                                    <button class="swatch" data-color="#FEF08A" style="background:#FEF08A" title="Yellow"></button>
-                                    <button class="swatch" data-color="#86EFAC" style="background:#86EFAC" title="Green"></button>
-                                    <button class="swatch" data-color="#93C5FD" style="background:#93C5FD" title="Blue"></button>
-                                    <button class="swatch" data-color="#FCA5A5" style="background:#FCA5A5" title="Red"></button>
-                                    <button class="swatch" data-color="#F9A8D4" style="background:#F9A8D4" title="Pink"></button>
-                                    <button class="swatch" data-color="#C4B5FD" style="background:#C4B5FD" title="Purple"></button>
-                                    <button class="swatch" data-color="#6EE7B7" style="background:#6EE7B7" title="Mint"></button>
-                                    <button class="swatch" data-color="#FBD38D" style="background:#FBD38D" title="Peach"></button>
-                                    <label class="swatch swatch-custom" title="Custom highlight">
-                                        <i class="fa-solid fa-plus"></i>
-                                        <input type="color" id="highlightCustom" value="#FEF08A">
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="toolbar-sep"></div>
-
-                        <!-- Lists -->
-                        <button class="fmt-btn" data-cmd="insertUnorderedList" title="Bullet List">
-                            <i class="fa-solid fa-list-ul"></i>
-                        </button>
-                        <button class="fmt-btn" data-cmd="insertOrderedList" title="Numbered List">
-                            <i class="fa-solid fa-list-ol"></i>
-                        </button>
-
-                        <div class="toolbar-sep"></div>
-
-                        <!-- Image attach -->
-                        <label class="fmt-btn" title="Attach Image" id="attachImageLabel">
-                            <i class="fa-solid fa-image"></i>
-                            <input type="file" id="imageUploadInput" accept="image/*" multiple style="display:none">
-                        </label>
-
-                        <!-- Paste screenshot hint -->
-                        <button class="fmt-btn" id="pasteHintBtn" title="Paste screenshot (Ctrl+V anywhere in the editor)">
-                            <i class="fa-solid fa-clipboard"></i>
-                        </button>
-                    </div>
-
-                    <!-- Rich Text Editor -->
-                    <div id="noteEditor" class="note-editor" contenteditable="true"
-                        data-placeholder="Start writing your thoughts..."></div>
+                    <textarea id="notepad" class="note-textarea"
+                        placeholder="Start writing your thoughts..."></textarea>
                 </div>
             </div>
         </main>
@@ -248,6 +142,7 @@
         </div>
     </div>
 
+    <!-- Link to Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="main.js"></script>
 </body>
