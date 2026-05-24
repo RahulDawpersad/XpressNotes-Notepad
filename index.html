@@ -6,11 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon_atoms.ico" type="image/x-icon">
     <title>XpressNotes</title>
-    <!-- Inter Font (Perplexity AI Font Family) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -65,7 +63,6 @@
                 </div>
                 <button id="signOutBtn" style="display: none;">Sign Out</button>
             </div>
-
         </aside>
 
         <!-- Main Content -->
@@ -83,7 +80,8 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <button class="topbar-btn" id="saveBtn" title="Save Note">
+                    <!-- Image button injected by JS -->
+                    <button class="topbar-btn" id="saveBtn" title="Save Note (Ctrl+S)">
                         <i class="fa-solid fa-floppy-disk"></i>
                         <span>Save</span>
                     </button>
@@ -106,9 +104,14 @@
                         <span id="charCount">0 characters</span>
                         <span class="meta-sep">·</span>
                         <span id="wordCount">0 words</span>
+                        <span class="meta-sep">·</span>
+                        <span class="meta-hint"><i class="fa-solid fa-highlighter"></i> Select text to highlight</span>
+                        <span class="meta-sep">·</span>
+                        <span class="meta-hint"><i class="fa-solid fa-image"></i> Paste screenshot or use Image button</span>
                     </div>
-                    <textarea id="notepad" class="note-textarea"
-                        placeholder="Start writing your thoughts..."></textarea>
+                    <!-- contenteditable replaces textarea for rich text support -->
+                    <div id="notepad" class="note-textarea" contenteditable="true"
+                        data-placeholder="Start writing your thoughts..."></div>
                 </div>
             </div>
         </main>
@@ -142,7 +145,6 @@
         </div>
     </div>
 
-    <!-- Link to Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="main.js"></script>
 </body>
