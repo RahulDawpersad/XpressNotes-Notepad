@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     // ============================================
-    // HIGHLIGHT TOOLBAR
+    // FORMATTING TOOLBAR (Highlight + Text Color)
     // ============================================
 
     const HIGHLIGHT_COLORS = [
@@ -414,16 +414,38 @@ document.addEventListener('DOMContentLoaded', async function () {
         { label: 'Remove',   value: 'none'    },
     ];
 
+    const TEXT_COLORS = [
+        { label: 'Red',     value: '#EF4444' },
+        { label: 'Orange',  value: '#F97316' },
+        { label: 'Yellow',  value: '#EAB308' },
+        { label: 'Green',   value: '#22C55E' },
+        { label: 'Blue',    value: '#3B82F6' },
+        { label: 'Purple',  value: '#A855F7' },
+        { label: 'Default', value: 'none'    },
+    ];
+
     const hlToolbar = document.createElement('div');
     hlToolbar.id = 'hl-toolbar';
     hlToolbar.innerHTML = `
-        <span class="hl-label"><i class="fa-solid fa-highlighter"></i></span>
-        ${HIGHLIGHT_COLORS.map(c => `
-            <button class="hl-swatch ${c.value === 'none' ? 'hl-swatch-none' : ''}"
-                title="${c.label}" data-color="${c.value}"
-                style="${c.value !== 'none' ? `background:${c.value}` : ''}">
-                ${c.value === 'none' ? '<i class="fa-solid fa-xmark"></i>' : ''}
-            </button>`).join('')}`;
+        <div class="hl-row">
+            <span class="hl-label" title="Highlight"><i class="fa-solid fa-highlighter"></i></span>
+            ${HIGHLIGHT_COLORS.map(c => `
+                <button class="hl-swatch ${c.value === 'none' ? 'hl-swatch-none' : ''}"
+                    title="${c.label}" data-type="highlight" data-color="${c.value}"
+                    style="${c.value !== 'none' ? `background:${c.value}` : ''}">
+                    ${c.value === 'none' ? '<i class="fa-solid fa-xmark"></i>' : ''}
+                </button>`).join('')}
+        </div>
+        <div class="hl-divider"></div>
+        <div class="hl-row">
+            <span class="hl-label" title="Text Color"><i class="fa-solid fa-font"></i></span>
+            ${TEXT_COLORS.map(c => `
+                <button class="hl-swatch tc-swatch ${c.value === 'none' ? 'hl-swatch-none' : ''}"
+                    title="${c.label}" data-type="textcolor" data-color="${c.value}"
+                    style="${c.value !== 'none' ? `background:${c.value}` : ''}">
+                    ${c.value === 'none' ? '<i class="fa-solid fa-xmark"></i>' : ''}
+                </button>`).join('')}
+        </div>`;
     document.body.appendChild(hlToolbar);
 
     let savedRange = null;
@@ -494,10 +516,21 @@ document.addEventListener('DOMContentLoaded', async function () {
             sel.removeAllRanges();
             sel.addRange(savedRange);
 
-            if (btn.dataset.color === 'none') {
-                document.execCommand('removeFormat', false, null);
-            } else {
-                document.execCommand('hiliteColor', false, btn.dataset.color);
+            const type  = btn.dataset.type;
+            const color = btn.dataset.color;
+
+            if (type === 'highlight') {
+                if (color === 'none') {
+                    document.execCommand('removeFormat', false, null);
+                } else {
+                    document.execCommand('hiliteColor', false, color);
+                }
+            } else if (type === 'textcolor') {
+                if (color === 'none') {
+                    document.execCommand('removeFormat', false, null);
+                } else {
+                    document.execCommand('foreColor', false, color);
+                }
             }
 
             sel.removeAllRanges();
