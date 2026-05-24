@@ -479,6 +479,17 @@ body {
     box-shadow: 0 2px 8px rgba(32, 178, 170, 0.3);
 }
 
+.topbar-btn#attachImgBtn {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+}
+
+.topbar-btn#attachImgBtn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
 .theme-btn {
     padding: 7px 10px;
 }
@@ -539,6 +550,12 @@ body {
     color: var(--text-tertiary);
 }
 
+.note-title-input:focus,
+.note-title-input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 /* Editor Meta */
 .editor-meta {
     display: flex;
@@ -549,16 +566,31 @@ body {
     border-bottom: 1px solid var(--border-light);
     font-size: 12px;
     color: var(--text-tertiary);
+    flex-wrap: wrap;
 }
 
 .meta-sep {
     font-size: 10px;
 }
 
-/* Textarea */
+.meta-hint {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.meta-hint i {
+    font-size: 10px;
+    color: var(--accent);
+}
+
+/* ============================================
+   Contenteditable Notepad
+   ============================================ */
 .note-textarea {
     width: 100%;
-    flex: 1;
     min-height: 400px;
     border: none;
     outline: none;
@@ -568,28 +600,163 @@ body {
     font-weight: 400;
     color: var(--text-primary);
     line-height: 1.8;
-    resize: none;
     padding: 0;
     transition: color var(--transition);
+    /* Contenteditable specific */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    cursor: text;
 }
 
-.note-textarea::placeholder {
+/* Placeholder for contenteditable */
+.note-textarea:empty::before {
+    content: attr(data-placeholder);
     color: var(--text-tertiary);
+    pointer-events: none;
+    display: block;
 }
 
-/* ====================== TEXTAREA SCROLLBAR ====================== */
-.note-textarea::-webkit-scrollbar {
-    width: 6px;
+.note-textarea:focus,
+.note-textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
 }
-.note-textarea::-webkit-scrollbar-track {
-    background: transparent;
+
+/* ============================================
+   Highlight Toolbar
+   ============================================ */
+#hl-toolbar {
+    position: fixed;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 32px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px) scale(0.96);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    user-select: none;
 }
-.note-textarea::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
+
+#hl-toolbar.visible {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0) scale(1);
 }
-.note-textarea::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
+
+.hl-label {
+    font-size: 12px;
+    color: var(--accent);
+    margin-right: 2px;
+    display: flex;
+    align-items: center;
+}
+
+.hl-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.hl-swatch:hover {
+    transform: scale(1.25);
+    border-color: var(--text-secondary);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* "None" / remove swatch */
+.hl-swatch-none {
+    background: var(--bg-hover) !important;
+    color: var(--danger);
+    border-color: var(--border);
+}
+
+.hl-swatch-none:hover {
+    border-color: var(--danger);
+    background: var(--danger-bg) !important;
+}
+
+/* Dark mode toolbar */
+body.dark-mode #hl-toolbar {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure highlights look good in dark mode */
+body.dark-mode mark,
+body.dark-mode [style*="background-color"] {
+    color: #111 !important;
+}
+
+/* ============================================
+   Image Attachment in Notes
+   ============================================ */
+.note-image-wrapper {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    margin: 12px 0;
+    border-radius: var(--radius-md);
+    overflow: visible;
+    line-height: 0;
+}
+
+.note-image {
+    display: block;
+    max-width: 100%;
+    max-height: 480px;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    transition: box-shadow var(--transition);
+}
+
+.note-image:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.note-image-remove {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition), transform var(--transition);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 10;
+    line-height: 1;
+}
+
+.note-image-wrapper:hover .note-image-remove {
+    opacity: 1;
+}
+
+.note-image-remove:hover {
+    transform: scale(1.1);
+    background: var(--danger-hover);
 }
 
 /* ============================================
@@ -840,27 +1007,43 @@ body {
 
     .sidebar-auth {
         padding: 16px;
-        /* Remove sticky positioning on mobile - let it flow naturally */
         position: relative;
         bottom: auto;
     }
 
-    /* Ensure no-notes-message doesn't push auth off screen */
     .no-notes-message {
         flex: 0 0 auto;
         padding: 24px 20px;
     }
 
-    /* Ensure notes list doesn't take all space on mobile */
     .notes-list {
         flex: 1 1 auto;
         max-height: calc(100dvh - 320px);
         overflow-y: auto;
     }
 
-    /* Sidebar footer should not take extra space when empty */
     .sidebar-footer {
         flex-shrink: 0;
+    }
+
+    /* Highlight toolbar stacks better on mobile */
+    #hl-toolbar {
+        gap: 6px;
+        padding: 8px 12px;
+    }
+
+    .hl-swatch {
+        width: 26px;
+        height: 26px;
+    }
+
+    /* Images cap at mobile screen width */
+    .note-image {
+        max-height: 280px;
+    }
+
+    .meta-hint {
+        display: none;
     }
 }
 
@@ -924,23 +1107,6 @@ body {
 }
 
 button:focus:not(:focus-visible),
-input:focus:not(:focus-visible),
-textarea:focus:not(:focus-visible) {
+input:focus:not(:focus-visible) {
     outline: none;
-}
-
-/* new rules:testing  */
-/* ====================== REMOVE GREEN FOCUS OUTLINE ====================== */
-/* Title input - no green outline on click/focus */
-.note-title-input:focus,
-.note-title-input:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-/* Textarea - no green outline on click/focus */
-.note-textarea:focus,
-.note-textarea:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
 }
