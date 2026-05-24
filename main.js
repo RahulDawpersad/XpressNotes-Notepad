@@ -4,12 +4,13 @@
    ============================================ */
 
 // ── Supabase (optional – only if configured) ──────────────────────────────
-let supabase = null;
+// Named sbClient to avoid collision with the global `supabase` declared by the CDN script
+let sbClient = null;
 try {
   const SUPA_URL = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
   const SUPA_KEY = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
   if (SUPA_URL && SUPA_KEY) {
-    supabase = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+    sbClient = window.supabase.createClient(SUPA_URL, SUPA_KEY);
   }
 } catch (_) {}
 
@@ -500,9 +501,9 @@ function showAuth(user) {
   }
 }
 
-if (supabase) {
-  supabase.auth.getSession().then(({ data }) => showAuth(data?.session?.user || null));
-  supabase.auth.onAuthStateChange((_, session) => showAuth(session?.user || null));
+if (sbClient) {
+  sbClient.auth.getSession().then(({ data }) => showAuth(data?.session?.user || null));
+  sbClient.auth.onAuthStateChange((_, session) => showAuth(session?.user || null));
 }
 
 signInOpenBtn?.addEventListener('click', () => { signInModal.style.display = 'flex'; });
@@ -516,8 +517,8 @@ window.addEventListener('click', e => {
 });
 
 signInSubmit?.addEventListener('click', async () => {
-  if (!supabase) return showToast('Supabase not configured', true);
-  const { error } = await supabase.auth.signInWithPassword({
+  if (!sbClient) return showToast('Supabase not configured', true);
+  const { error } = await sbClient.auth.signInWithPassword({
     email: signInEmail.value, password: signInPassword.value
   });
   if (error) showToast(error.message, true);
@@ -525,8 +526,8 @@ signInSubmit?.addEventListener('click', async () => {
 });
 
 signUpSubmit?.addEventListener('click', async () => {
-  if (!supabase) return showToast('Supabase not configured', true);
-  const { error } = await supabase.auth.signUp({
+  if (!sbClient) return showToast('Supabase not configured', true);
+  const { error } = await sbClient.auth.signUp({
     email: signUpEmail.value, password: signUpPassword.value
   });
   if (error) showToast(error.message, true);
@@ -534,8 +535,8 @@ signUpSubmit?.addEventListener('click', async () => {
 });
 
 signOutBtn?.addEventListener('click', async () => {
-  if (!supabase) return;
-  await supabase.auth.signOut();
+  if (!sbClient) return;
+  await sbClient.auth.signOut();
   showToast('Signed out');
 });
 
