@@ -631,10 +631,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         imgInput.value = '';
     });
 
-    // Paste screenshot directly into editor
+    // ============================================
+    // PASTE HANDLER
+    // Strips inline styles/colors from pasted HTML so
+    // text is always visible in both light and dark mode.
+    // ============================================
     notepad.addEventListener('paste', async (e) => {
         const items = e.clipboardData?.items;
         if (!items) return;
+
+        // Handle image paste first
         for (const item of items) {
             if (item.type.startsWith('image/')) {
                 e.preventDefault();
@@ -649,7 +655,30 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
         }
-        // Plain text paste falls through to browser default
+
+        // Strip inline styles/colors from pasted HTML
+        e.preventDefault();
+        const html = e.clipboardData.getData('text/html');
+        if (html) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            // Remove all inline style attributes
+            tmp.querySelectorAll('[style]').forEach(el => el.removeAttribute('style'));
+            // Remove legacy color/bgcolor/face attributes
+            tmp.querySelectorAll('[color],[bgcolor],[face]').forEach(el => {
+                el.removeAttribute('color');
+                el.removeAttribute('bgcolor');
+                el.removeAttribute('face');
+            });
+            // Unwrap <font> tags, keeping their inner content
+            tmp.querySelectorAll('font').forEach(el => el.replaceWith(...el.childNodes));
+            document.execCommand('insertHTML', false, tmp.innerHTML);
+        } else {
+            // Fallback: insert as plain text
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        }
+        updateCounts();
     });
 
     // ============================================
