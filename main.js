@@ -375,11 +375,31 @@ document.addEventListener('DOMContentLoaded', async function () {
         return wrapper;
     };
 
-    // Renders the given element off-screen, converts to PDF, then cleans up.
+    // Resolves once every <img> inside the element has finished loading
+    // (or failed) so html2canvas never snapshots a half-loaded image.
+    const waitForImages = (element) => {
+        const imgs = Array.from(element.querySelectorAll('img'));
+        if (imgs.length === 0) return Promise.resolve();
+        return Promise.all(imgs.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            });
+        }));
+    };
+
+    // Renders the given element on-screen-but-invisible, converts to PDF, then
+    // cleans up. NOTE: html2canvas frequently fails to capture content placed
+    // far off-screen (e.g. left: -99999px) — many browsers skip layout/paint
+    // for elements that far outside the viewport, which produced blank PDFs.
+    // Keeping it within the viewport (just invisible) fixes that.
     const exportElementToPdf = (element, filename) => {
         element.style.position = 'fixed';
         element.style.top = '0';
-        element.style.left = '-99999px';
+        element.style.left = '0';
+        element.style.opacity = '0';
+        element.style.pointerEvents = 'none';
         element.style.zIndex = '-1';
         document.body.appendChild(element);
 
@@ -392,7 +412,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
-        return html2pdf().set(opts).from(element).save()
+        // Wait for images to load, then give the browser a couple frames to
+        // finish layout/paint before html2canvas snapshots the element.
+        return waitForImages(element)
+            .then(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+            .then(() => html2pdf().set(opts).from(element).save())
             .then(() => { element.remove(); })
             .catch((err) => { element.remove(); throw err; });
     };
