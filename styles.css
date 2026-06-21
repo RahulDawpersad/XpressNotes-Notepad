@@ -22,6 +22,8 @@
     --danger: #EF4444;
     --danger-hover: #DC2626;
     --danger-bg: rgba(239, 68, 68, 0.08);
+    --pdf-color: #E2574C;
+    --pdf-bg: rgba(226, 87, 76, 0.08);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -49,6 +51,7 @@ body.dark-mode {
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
     --danger-bg: rgba(239, 68, 68, 0.12);
+    --pdf-bg: rgba(226, 87, 76, 0.14);
 }
 
 /* General Reset */
@@ -283,7 +286,8 @@ body {
     margin-top: 2px;
 }
 
-.note-item-delete {
+.note-item-delete,
+.note-item-pdf {
     background: none;
     border: none;
     color: var(--text-tertiary);
@@ -297,13 +301,19 @@ body {
     margin-top: 2px;
 }
 
-.note-item:hover .note-item-delete {
+.note-item:hover .note-item-delete,
+.note-item:hover .note-item-pdf {
     opacity: 1;
 }
 
 .note-item-delete:hover {
     background: var(--danger-bg);
     color: var(--danger);
+}
+
+.note-item-pdf:hover {
+    background: var(--pdf-bg);
+    color: var(--pdf-color);
 }
 
 /* No Notes Message */
@@ -488,6 +498,17 @@ body {
     background: var(--accent-light);
     color: var(--accent);
     border-color: var(--accent);
+}
+
+.topbar-btn#exportPdfBtn {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+}
+
+.topbar-btn#exportPdfBtn:hover {
+    background: var(--pdf-bg);
+    color: var(--pdf-color);
+    border-color: var(--pdf-color);
 }
 
 .theme-btn {
@@ -1073,6 +1094,13 @@ body.dark-mode [style*="background-color"] {
 
     .meta-hint {
         display: none;
+    }
+
+    /* Always show per-note action icons on touch devices
+       since there's no hover state to reveal them */
+    .note-item-delete,
+    .note-item-pdf {
+        opacity: 1;
     }
 }
 
