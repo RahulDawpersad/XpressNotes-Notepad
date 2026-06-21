@@ -1,7 +1,6 @@
 // ============================================
 // XpressNotes - Modern Notepad App with Supabase
 // + Text Highlighting & Image Attachment
-// + Export/Save to PDF
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -108,16 +107,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         return div.innerHTML;
     };
 
-    // Safe filename from note title
-    const slugifyFilename = (title) => {
-        const base = (title || 'Untitled Note').trim() || 'Untitled Note';
-        return base
-            .replace(/[\\/:*?"<>|]/g, '')   // strip filesystem-illegal chars
-            .replace(/\s+/g, ' ')
-            .trim()
-            .substring(0, 80) || 'Untitled Note';
-    };
-
     // ============================================
     // Auth Functions
     // ============================================
@@ -217,9 +206,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <div class="note-item-preview">${escapeHtml(getPreview(note.content))}</div>
                         <div class="note-item-date">${note.date}${note.time ? ' · ' + note.time : ''}</div>
                     </div>
-                    <button class="note-item-pdf" data-id="${note.id}" title="Export as PDF">
-                        <i class="fa-solid fa-file-pdf" data-id="${note.id}"></i>
-                    </button>
                     <button class="note-item-delete" data-id="${note.id}" title="Delete note">
                         <i class="fa-solid fa-trash-can" data-id="${note.id}"></i>
                     </button>
@@ -317,218 +303,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     // ============================================
-    // PDF EXPORT
-    // ============================================
-
-    // Builds a clean, light, print-friendly DOM node from a title + HTML content
-    // string. Used for both the active editor note and saved sidebar notes.
-    const buildPdfElement = (title, contentHtml) => {
-        const wrapper = document.createElement('div');
-        wrapper.style.background = '#FFFFFF';
-        wrapper.style.color = '#1A1A1A';
-        wrapper.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        wrapper.style.padding = '8px 4px';
-        wrapper.style.width = '680px';
-
-        const titleEl = document.createElement('div');
-        titleEl.textContent = title || 'Untitled Note';
-        titleEl.style.fontSize = '26px';
-        titleEl.style.fontWeight = '700';
-        titleEl.style.letterSpacing = '-0.3px';
-        titleEl.style.marginBottom = '6px';
-        titleEl.style.color = '#1A1A1A';
-
-        const metaEl = document.createElement('div');
-        metaEl.textContent = `${getCurrentDate()} · ${getCurrentTime()}`;
-        metaEl.style.fontSize = '11px';
-        metaEl.style.color = '#9CA3AF';
-        metaEl.style.marginBottom = '16px';
-        metaEl.style.paddingBottom = '14px';
-        metaEl.style.borderBottom = '1px solid #E5E7EB';
-
-        const contentEl = document.createElement('div');
-        contentEl.innerHTML = contentHtml || '<p style="color:#9CA3AF;">This note is empty.</p>';
-        contentEl.style.fontSize = '14px';
-        contentEl.style.lineHeight = '1.75';
-        contentEl.style.color = '#1A1A1A';
-        contentEl.style.wordBreak = 'break-word';
-
-        // Force every descendant to plain light-mode-safe colors EXCEPT
-        // intentional highlight backgrounds and chosen text colors, which
-        // were set inline by the toolbar (hiliteColor / foreColor) and
-        // should be preserved as-is in the export.
-        contentEl.querySelectorAll('*').forEach(el => {
-            // Cap image width so it never overflows the PDF page
-            if (el.tagName === 'IMG') {
-                el.style.maxWidth = '100%';
-                el.style.borderRadius = '8px';
-            }
-            // Remove the little red remove-image button from export
-            if (el.classList && el.classList.contains('note-image-remove')) {
-                el.remove();
-            }
-        });
-
-        wrapper.appendChild(titleEl);
-        wrapper.appendChild(metaEl);
-        wrapper.appendChild(contentEl);
-        return wrapper;
-    };
-
-    // Resolves once every <img> inside the element has finished loading
-    // (or failed) so html2canvas never snapshots a half-loaded image.
-    const waitForImages = (element) => {
-        const imgs = Array.from(element.querySelectorAll('img'));
-        if (imgs.length === 0) return Promise.resolve();
-        return Promise.all(imgs.map(img => {
-            if (img.complete) return Promise.resolve();
-            return new Promise(resolve => {
-                img.addEventListener('load', resolve, { once: true });
-                img.addEventListener('error', resolve, { once: true });
-            });
-        }));
-    };
-
-    // Renders the given element on-screen-but-invisible, converts to PDF, then
-    // cleans up. NOTE: html2canvas frequently fails to capture content placed
-    // far off-screen (e.g. left: -99999px) — many browsers skip layout/paint
-    // for elements that far outside the viewport, which produced blank PDFs.
-    // Keeping it within the viewport (just invisible) avoids that.
-    //
-    // We drive html2canvas + jsPDF directly (rather than the html2pdf.js
-    // one-liner) so we can: (a) verify the captured canvas actually has
-    // pixels before writing a PDF, and (b) paginate long notes across
-    // multiple A4 pages ourselves.
-    const exportElementToPdf = async (element, filename) => {
-        element.style.position = 'fixed';
-        element.style.top = '0';
-        element.style.left = '0';
-        element.style.opacity = '0';
-        element.style.pointerEvents = 'none';
-        element.style.zIndex = '-1';
-        document.body.appendChild(element);
-
-        try {
-            if (typeof html2canvas === 'undefined') {
-                throw new Error('html2canvas failed to load (check internet connection / CDN access)');
-            }
-            const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-            if (!jsPDFCtor) {
-                throw new Error('jsPDF failed to load (check internet connection / CDN access)');
-            }
-
-            // Wait for images to load, then a couple of frames for layout/paint.
-            await waitForImages(element);
-            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#FFFFFF',
-                logging: false,
-            });
-
-            if (!canvas || !canvas.width || !canvas.height) {
-                throw new Error('Rendered canvas was empty — nothing to export');
-            }
-
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            if (!imgData || imgData.length < 100) {
-                throw new Error('Canvas produced no image data');
-            }
-
-            // A4 page size in points, with margins matching buildPdfElement padding
-            const pdf = new jsPDFCtor({ unit: 'pt', format: 'a4', orientation: 'portrait' });
-            const margin = 28; // ~14px*2 worth of pt margin on each side
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const usableWidth = pageWidth - margin * 2;
-            const usableHeight = pageHeight - margin * 2;
-
-            // Scale the captured canvas to fit the usable page width
-            const imgWidth = usableWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            if (imgHeight <= usableHeight) {
-                // Fits on a single page
-                pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
-            } else {
-                // Paginate: slice the source canvas into page-sized chunks
-                const pageHeightPx = (usableHeight * canvas.width) / usableWidth;
-                let renderedHeightPx = 0;
-                let firstPage = true;
-
-                while (renderedHeightPx < canvas.height) {
-                    const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedHeightPx);
-
-                    const pageCanvas = document.createElement('canvas');
-                    pageCanvas.width = canvas.width;
-                    pageCanvas.height = sliceHeightPx;
-                    const ctx = pageCanvas.getContext('2d');
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-                    ctx.drawImage(
-                        canvas,
-                        0, renderedHeightPx, canvas.width, sliceHeightPx,
-                        0, 0, canvas.width, sliceHeightPx
-                    );
-
-                    const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.95);
-                    const pageImgHeight = (sliceHeightPx * imgWidth) / canvas.width;
-
-                    if (!firstPage) pdf.addPage();
-                    pdf.addImage(pageImgData, 'JPEG', margin, margin, imgWidth, pageImgHeight);
-
-                    renderedHeightPx += sliceHeightPx;
-                    firstPage = false;
-                }
-            }
-
-            pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
-        } finally {
-            element.remove();
-        }
-    };
-
-    // Export whatever is currently in the editor (new or loaded note)
-    const exportCurrentNoteToPdf = async () => {
-        const title = noteTitle.value.trim() || 'Untitled Note';
-        const content = notepad.innerHTML.trim();
-
-        if (!content && !noteTitle.value.trim()) {
-            showToast('Nothing to export yet');
-            return;
-        }
-
-        showToast('Generating PDF...');
-        try {
-            const el = buildPdfElement(title, content);
-            await exportElementToPdf(el, slugifyFilename(title));
-            showToast('PDF downloaded!');
-        } catch (err) {
-            console.error('PDF export failed:', err);
-            showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'));
-        }
-    };
-
-    // Export a specific saved note (from the sidebar) without loading it into the editor
-    const exportSavedNoteToPdf = async (id) => {
-        const savedNotes = await getNotes();
-        const note = savedNotes.find(n => n.id === id);
-        if (!note) { showToast('Note not found'); return; }
-
-        showToast('Generating PDF...');
-        try {
-            const el = buildPdfElement(note.title, note.content);
-            await exportElementToPdf(el, slugifyFilename(note.title));
-            showToast('PDF downloaded!');
-        } catch (err) {
-            console.error('PDF export failed:', err);
-            showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'));
-        }
-    };
-
-    // ============================================
     // Event Listeners - Core
     // ============================================
 
@@ -549,8 +323,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     savedNotesList.addEventListener('click', async (e) => {
         const deleteBtn = e.target.closest('.note-item-delete');
         if (deleteBtn) { await deleteNote(deleteBtn.getAttribute('data-id')); return; }
-        const pdfBtn = e.target.closest('.note-item-pdf');
-        if (pdfBtn) { await exportSavedNoteToPdf(pdfBtn.getAttribute('data-id')); return; }
         const noteItem = e.target.closest('.note-item');
         if (noteItem) await loadNoteIntoEditor(noteItem.getAttribute('data-id'));
     });
@@ -791,15 +563,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
     saveBtn.parentElement.insertBefore(attachImgBtn, saveBtn);
 
-    // Inject "Export PDF" button into topbar before Save
-    const exportPdfBtn = document.createElement('button');
-    exportPdfBtn.className = 'topbar-btn';
-    exportPdfBtn.id        = 'exportPdfBtn';
-    exportPdfBtn.title     = 'Save / Export Note as PDF';
-    exportPdfBtn.innerHTML = '<i class="fa-solid fa-file-pdf"></i><span>PDF</span>';
-    exportPdfBtn.addEventListener('click', exportCurrentNoteToPdf);
-    saveBtn.parentElement.insertBefore(exportPdfBtn, saveBtn);
-
     const fileToDataUrl = (file) => new Promise((res, rej) => {
         const reader = new FileReader();
         reader.onload  = e => res(e.target.result);
@@ -917,6 +680,331 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         updateCounts();
     });
+
+
+    // ============================================
+// PDF GENERATION
+// ============================================
+
+// Get the PDF button element
+const pdfBtn = document.getElementById('pdfBtn');
+
+// Function to generate and download PDF
+const generatePDF = () => {
+    const title = noteTitle.value.trim() || 'Untitled Note';
+    const content = notepad.innerHTML;
+    const date = getCurrentDate();
+    const time = getCurrentTime();
+    
+    // Store current theme
+    const isDarkMode = body.classList.contains('dark-mode');
+    
+    // Create a temporary iframe for PDF generation
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.visibility = 'hidden';
+    document.body.appendChild(iframe);
+    
+    // Get computed styles from the current theme
+    const computedStyle = getComputedStyle(body);
+    const bgColor = computedStyle.getPropertyValue('--bg-primary').trim() || (isDarkMode ? '#0F0F0F' : '#FAFAFA');
+    const textColor = computedStyle.getPropertyValue('--text-primary').trim() || (isDarkMode ? '#F0F0F0' : '#1A1A1A');
+    const accentColor = computedStyle.getPropertyValue('--accent').trim() || '#20B2AA';
+    
+    // Write the PDF content to the iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>${escapeHtml(title)}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+                
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: ${bgColor};
+                    color: ${textColor};
+                    padding: 60px 80px;
+                    line-height: 1.8;
+                    font-size: 15px;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                    color-adjust: exact;
+                }
+                
+                .pdf-header {
+                    margin-bottom: 40px;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid ${accentColor};
+                }
+                
+                .pdf-title {
+                    font-size: 36px;
+                    font-weight: 700;
+                    color: ${textColor};
+                    margin-bottom: 12px;
+                    letter-spacing: -0.5px;
+                    line-height: 1.2;
+                }
+                
+                .pdf-meta {
+                    display: flex;
+                    gap: 20px;
+                    color: #6B7280;
+                    font-size: 13px;
+                    font-weight: 400;
+                }
+                
+                .pdf-meta-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                
+                .pdf-meta-item i {
+                    color: ${accentColor};
+                }
+                
+                .pdf-content {
+                    font-size: 15px;
+                    line-height: 1.8;
+                    word-break: break-word;
+                    overflow-wrap: break-word;
+                }
+                
+                .pdf-content mark,
+                .pdf-content [style*="background-color"] {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                    color-adjust: exact;
+                }
+                
+                .pdf-content [style*="color"] {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                    color-adjust: exact;
+                }
+                
+                .pdf-content .note-image-wrapper {
+                    position: relative;
+                    display: block;
+                    max-width: 100%;
+                    margin: 24px 0;
+                    page-break-inside: avoid;
+                }
+                
+                .pdf-content .note-image {
+                    display: block;
+                    max-width: 100%;
+                    max-height: 600px;
+                    object-fit: contain;
+                    border-radius: 8px;
+                    border: 1px solid #E5E7EB;
+                }
+                
+                .pdf-content .note-image-remove {
+                    display: none !important;
+                }
+                
+                .pdf-footer {
+                    margin-top: 60px;
+                    padding-top: 20px;
+                    border-top: 1px solid #E5E7EB;
+                    text-align: center;
+                    color: #9CA3AF;
+                    font-size: 11px;
+                }
+                
+                .pdf-watermark {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                }
+                
+                .pdf-watermark i {
+                    color: ${accentColor};
+                }
+                
+                @media print {
+                    body {
+                        padding: 0;
+                        background: white !important;
+                        color: black !important;
+                    }
+                    
+                    .pdf-header {
+                        border-bottom-color: #E5E7EB !important;
+                    }
+                    
+                    .pdf-title {
+                        color: #1A1A1A !important;
+                    }
+                    
+                    .pdf-content {
+                        color: #1A1A1A !important;
+                    }
+                    
+                    .pdf-content * {
+                        color: inherit !important;
+                    }
+                    
+                    .pdf-content mark,
+                    .pdf-content [style*="background-color"] {
+                        color: #111 !important;
+                    }
+                    
+                    @page {
+                        size: A4;
+                        margin: 20mm;
+                    }
+                }
+            </style>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        </head>
+        <body>
+            <div class="pdf-header">
+                <h1 class="pdf-title">${escapeHtml(title)}</h1>
+                <div class="pdf-meta">
+                    <div class="pdf-meta-item">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span>${date}</span>
+                    </div>
+                    <div class="pdf-meta-item">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>${time}</span>
+                    </div>
+                    <div class="pdf-meta-item">
+                        <i class="fa-solid fa-feather-pointed"></i>
+                        <span>XpressNotes</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pdf-content">
+                ${content || '<p style="color: #9CA3AF; font-style: italic;">No content</p>'}
+            </div>
+            <div class="pdf-footer">
+                <div class="pdf-watermark">
+                    <i class="fa-solid fa-feather-pointed"></i>
+                    <span>Created with XpressNotes</span>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+    
+    iframeDoc.close();
+    
+    // Wait for images to load
+    const images = iframeDoc.querySelectorAll('img');
+    let loadedImages = 0;
+    const totalImages = images.length;
+    
+    const printWhenReady = () => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        
+        // Clean up after print dialog closes
+        setTimeout(() => {
+            document.body.removeChild(iframe);
+        }, 1000);
+    };
+    
+    if (totalImages === 0) {
+        setTimeout(printWhenReady, 500);
+    } else {
+        images.forEach(img => {
+            if (img.complete) {
+                loadedImages++;
+                if (loadedImages === totalImages) {
+                    setTimeout(printWhenReady, 500);
+                }
+            } else {
+                img.onload = () => {
+                    loadedImages++;
+                    if (loadedImages === totalImages) {
+                        setTimeout(printWhenReady, 500);
+                    }
+                };
+                img.onerror = () => {
+                    loadedImages++;
+                    if (loadedImages === totalImages) {
+                        setTimeout(printWhenReady, 500);
+                    }
+                };
+            }
+        });
+    }
+};
+
+// Add event listener for PDF button
+pdfBtn.addEventListener('click', () => {
+    generatePDF();
+});
+
+// Add keyboard shortcut Ctrl+Shift+P for PDF
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
+        e.preventDefault();
+        generatePDF();
+    }
+});
+
+// Also add a PDF option in the context menu for saved notes
+savedNotesList.addEventListener('contextmenu', async (e) => {
+    const noteItem = e.target.closest('.note-item');
+    if (noteItem) {
+        e.preventDefault();
+        const noteId = noteItem.getAttribute('data-id');
+        
+        // Load the note temporarily, generate PDF, then restore current note
+        const savedNotes = await getNotes();
+        const note = savedNotes.find(n => n.id === noteId);
+        
+        if (note) {
+            // Store current state
+            const currentContent = notepad.innerHTML;
+            const currentTitle = noteTitle.value;
+            const currentActiveNoteId = activeNoteId;
+            
+            // Load the selected note
+            activeNoteId = noteId;
+            noteTitle.value = note.title;
+            notepad.innerHTML = note.content || '';
+            
+            // Generate PDF
+            setTimeout(() => {
+                generatePDF();
+                
+                // Restore previous state after a short delay
+                setTimeout(() => {
+                    activeNoteId = currentActiveNoteId;
+                    noteTitle.value = currentTitle;
+                    notepad.innerHTML = currentContent;
+                    if (currentActiveNoteId) {
+                        updateBreadcrumb(currentTitle || 'New Note');
+                    } else {
+                        updateBreadcrumb('New Note');
+                    }
+                    updateCounts();
+                }, 1500);
+            }, 300);
+        }
+    }
+});
 
     // ============================================
     // Initialize
