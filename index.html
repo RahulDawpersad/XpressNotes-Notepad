@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -82,7 +81,6 @@
                 </div>
                 <div class="topbar-right">
                     <!-- Image button injected by JS -->
-                    <!-- PDF export button injected by JS -->
                     <button class="topbar-btn" id="saveBtn" title="Save Note (Ctrl+S)">
                         <i class="fa-solid fa-floppy-disk"></i>
                         <span>Save</span>
@@ -90,6 +88,10 @@
                     <button class="topbar-btn" id="clearBtn" title="Clear">
                         <i class="fa-solid fa-eraser"></i>
                         <span>Clear</span>
+                    </button>
+                    <button class="topbar-btn" id="pdfBtn" title="Save as PDF (Ctrl+P)">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>PDF</span>
                     </button>
                     <button class="topbar-btn theme-btn" id="themeBtn" title="Toggle Theme">
                         <i class="fa-solid fa-moon"></i>
