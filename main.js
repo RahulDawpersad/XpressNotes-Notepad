@@ -1,6 +1,7 @@
 // ============================================
 // XpressNotes - Modern Notepad App with Supabase
 // + Text Highlighting & Image Attachment
+// + Export/Save to PDF
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -107,6 +108,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         return div.innerHTML;
     };
 
+    // Safe filename from note title
+    const slugifyFilename = (title) => {
+        const base = (title || 'Untitled Note').trim() || 'Untitled Note';
+        return base
+            .replace(/[\\/:*?"<>|]/g, '')   // strip filesystem-illegal chars
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 80) || 'Untitled Note';
+    };
+
     // ============================================
     // Auth Functions
     // ============================================
@@ -206,6 +217,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <div class="note-item-preview">${escapeHtml(getPreview(note.content))}</div>
                         <div class="note-item-date">${note.date}${note.time ? ' · ' + note.time : ''}</div>
                     </div>
+                    <button class="note-item-pdf" data-id="${note.id}" title="Export as PDF">
+                        <i class="fa-solid fa-file-pdf" data-id="${note.id}"></i>
+                    </button>
                     <button class="note-item-delete" data-id="${note.id}" title="Delete note">
                         <i class="fa-solid fa-trash-can" data-id="${note.id}"></i>
                     </button>
@@ -303,6 +317,125 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     // ============================================
+    // PDF EXPORT
+    // ============================================
+
+    // Builds a clean, light, print-friendly DOM node from a title + HTML content
+    // string. Used for both the active editor note and saved sidebar notes.
+    const buildPdfElement = (title, contentHtml) => {
+        const wrapper = document.createElement('div');
+        wrapper.style.background = '#FFFFFF';
+        wrapper.style.color = '#1A1A1A';
+        wrapper.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        wrapper.style.padding = '8px 4px';
+        wrapper.style.width = '680px';
+
+        const titleEl = document.createElement('div');
+        titleEl.textContent = title || 'Untitled Note';
+        titleEl.style.fontSize = '26px';
+        titleEl.style.fontWeight = '700';
+        titleEl.style.letterSpacing = '-0.3px';
+        titleEl.style.marginBottom = '6px';
+        titleEl.style.color = '#1A1A1A';
+
+        const metaEl = document.createElement('div');
+        metaEl.textContent = `${getCurrentDate()} · ${getCurrentTime()}`;
+        metaEl.style.fontSize = '11px';
+        metaEl.style.color = '#9CA3AF';
+        metaEl.style.marginBottom = '16px';
+        metaEl.style.paddingBottom = '14px';
+        metaEl.style.borderBottom = '1px solid #E5E7EB';
+
+        const contentEl = document.createElement('div');
+        contentEl.innerHTML = contentHtml || '<p style="color:#9CA3AF;">This note is empty.</p>';
+        contentEl.style.fontSize = '14px';
+        contentEl.style.lineHeight = '1.75';
+        contentEl.style.color = '#1A1A1A';
+        contentEl.style.wordBreak = 'break-word';
+
+        // Force every descendant to plain light-mode-safe colors EXCEPT
+        // intentional highlight backgrounds and chosen text colors, which
+        // were set inline by the toolbar (hiliteColor / foreColor) and
+        // should be preserved as-is in the export.
+        contentEl.querySelectorAll('*').forEach(el => {
+            // Cap image width so it never overflows the PDF page
+            if (el.tagName === 'IMG') {
+                el.style.maxWidth = '100%';
+                el.style.borderRadius = '8px';
+            }
+            // Remove the little red remove-image button from export
+            if (el.classList && el.classList.contains('note-image-remove')) {
+                el.remove();
+            }
+        });
+
+        wrapper.appendChild(titleEl);
+        wrapper.appendChild(metaEl);
+        wrapper.appendChild(contentEl);
+        return wrapper;
+    };
+
+    // Renders the given element off-screen, converts to PDF, then cleans up.
+    const exportElementToPdf = (element, filename) => {
+        element.style.position = 'fixed';
+        element.style.top = '0';
+        element.style.left = '-99999px';
+        element.style.zIndex = '-1';
+        document.body.appendChild(element);
+
+        const opts = {
+            margin: [14, 14, 14, 14],
+            filename: filename.endsWith('.pdf') ? filename : `${filename}.pdf`,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#FFFFFF' },
+            jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        return html2pdf().set(opts).from(element).save()
+            .then(() => { element.remove(); })
+            .catch((err) => { element.remove(); throw err; });
+    };
+
+    // Export whatever is currently in the editor (new or loaded note)
+    const exportCurrentNoteToPdf = async () => {
+        const title = noteTitle.value.trim() || 'Untitled Note';
+        const content = notepad.innerHTML.trim();
+
+        if (!content && !noteTitle.value.trim()) {
+            showToast('Nothing to export yet');
+            return;
+        }
+
+        showToast('Generating PDF...');
+        try {
+            const el = buildPdfElement(title, content);
+            await exportElementToPdf(el, slugifyFilename(title));
+            showToast('PDF downloaded!');
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to generate PDF');
+        }
+    };
+
+    // Export a specific saved note (from the sidebar) without loading it into the editor
+    const exportSavedNoteToPdf = async (id) => {
+        const savedNotes = await getNotes();
+        const note = savedNotes.find(n => n.id === id);
+        if (!note) { showToast('Note not found'); return; }
+
+        showToast('Generating PDF...');
+        try {
+            const el = buildPdfElement(note.title, note.content);
+            await exportElementToPdf(el, slugifyFilename(note.title));
+            showToast('PDF downloaded!');
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to generate PDF');
+        }
+    };
+
+    // ============================================
     // Event Listeners - Core
     // ============================================
 
@@ -323,6 +456,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     savedNotesList.addEventListener('click', async (e) => {
         const deleteBtn = e.target.closest('.note-item-delete');
         if (deleteBtn) { await deleteNote(deleteBtn.getAttribute('data-id')); return; }
+        const pdfBtn = e.target.closest('.note-item-pdf');
+        if (pdfBtn) { await exportSavedNoteToPdf(pdfBtn.getAttribute('data-id')); return; }
         const noteItem = e.target.closest('.note-item');
         if (noteItem) await loadNoteIntoEditor(noteItem.getAttribute('data-id'));
     });
@@ -562,6 +697,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         imgInput.click();
     });
     saveBtn.parentElement.insertBefore(attachImgBtn, saveBtn);
+
+    // Inject "Export PDF" button into topbar before Save
+    const exportPdfBtn = document.createElement('button');
+    exportPdfBtn.className = 'topbar-btn';
+    exportPdfBtn.id        = 'exportPdfBtn';
+    exportPdfBtn.title     = 'Save / Export Note as PDF';
+    exportPdfBtn.innerHTML = '<i class="fa-solid fa-file-pdf"></i><span>PDF</span>';
+    exportPdfBtn.addEventListener('click', exportCurrentNoteToPdf);
+    saveBtn.parentElement.insertBefore(exportPdfBtn, saveBtn);
 
     const fileToDataUrl = (file) => new Promise((res, rej) => {
         const reader = new FileReader();
