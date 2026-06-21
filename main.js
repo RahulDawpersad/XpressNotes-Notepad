@@ -393,8 +393,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     // cleans up. NOTE: html2canvas frequently fails to capture content placed
     // far off-screen (e.g. left: -99999px) — many browsers skip layout/paint
     // for elements that far outside the viewport, which produced blank PDFs.
-    // Keeping it within the viewport (just invisible) fixes that.
-    const exportElementToPdf = (element, filename) => {
+    // Keeping it within the viewport (just invisible) avoids that.
+    //
+    // We drive html2canvas + jsPDF directly (rather than the html2pdf.js
+    // one-liner) so we can: (a) verify the captured canvas actually has
+    // pixels before writing a PDF, and (b) paginate long notes across
+    // multiple A4 pages ourselves.
+    const exportElementToPdf = async (element, filename) => {
         element.style.position = 'fixed';
         element.style.top = '0';
         element.style.left = '0';
@@ -403,22 +408,86 @@ document.addEventListener('DOMContentLoaded', async function () {
         element.style.zIndex = '-1';
         document.body.appendChild(element);
 
-        const opts = {
-            margin: [14, 14, 14, 14],
-            filename: filename.endsWith('.pdf') ? filename : `${filename}.pdf`,
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#FFFFFF' },
-            jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
+        try {
+            if (typeof html2canvas === 'undefined') {
+                throw new Error('html2canvas failed to load (check internet connection / CDN access)');
+            }
+            const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+            if (!jsPDFCtor) {
+                throw new Error('jsPDF failed to load (check internet connection / CDN access)');
+            }
 
-        // Wait for images to load, then give the browser a couple frames to
-        // finish layout/paint before html2canvas snapshots the element.
-        return waitForImages(element)
-            .then(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-            .then(() => html2pdf().set(opts).from(element).save())
-            .then(() => { element.remove(); })
-            .catch((err) => { element.remove(); throw err; });
+            // Wait for images to load, then a couple of frames for layout/paint.
+            await waitForImages(element);
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#FFFFFF',
+                logging: false,
+            });
+
+            if (!canvas || !canvas.width || !canvas.height) {
+                throw new Error('Rendered canvas was empty — nothing to export');
+            }
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            if (!imgData || imgData.length < 100) {
+                throw new Error('Canvas produced no image data');
+            }
+
+            // A4 page size in points, with margins matching buildPdfElement padding
+            const pdf = new jsPDFCtor({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+            const margin = 28; // ~14px*2 worth of pt margin on each side
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const usableWidth = pageWidth - margin * 2;
+            const usableHeight = pageHeight - margin * 2;
+
+            // Scale the captured canvas to fit the usable page width
+            const imgWidth = usableWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            if (imgHeight <= usableHeight) {
+                // Fits on a single page
+                pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
+            } else {
+                // Paginate: slice the source canvas into page-sized chunks
+                const pageHeightPx = (usableHeight * canvas.width) / usableWidth;
+                let renderedHeightPx = 0;
+                let firstPage = true;
+
+                while (renderedHeightPx < canvas.height) {
+                    const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedHeightPx);
+
+                    const pageCanvas = document.createElement('canvas');
+                    pageCanvas.width = canvas.width;
+                    pageCanvas.height = sliceHeightPx;
+                    const ctx = pageCanvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    ctx.drawImage(
+                        canvas,
+                        0, renderedHeightPx, canvas.width, sliceHeightPx,
+                        0, 0, canvas.width, sliceHeightPx
+                    );
+
+                    const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+                    const pageImgHeight = (sliceHeightPx * imgWidth) / canvas.width;
+
+                    if (!firstPage) pdf.addPage();
+                    pdf.addImage(pageImgData, 'JPEG', margin, margin, imgWidth, pageImgHeight);
+
+                    renderedHeightPx += sliceHeightPx;
+                    firstPage = false;
+                }
+            }
+
+            pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+        } finally {
+            element.remove();
+        }
     };
 
     // Export whatever is currently in the editor (new or loaded note)
@@ -437,8 +506,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             await exportElementToPdf(el, slugifyFilename(title));
             showToast('PDF downloaded!');
         } catch (err) {
-            console.error(err);
-            showToast('Failed to generate PDF');
+            console.error('PDF export failed:', err);
+            showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'));
         }
     };
 
@@ -454,8 +523,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             await exportElementToPdf(el, slugifyFilename(note.title));
             showToast('PDF downloaded!');
         } catch (err) {
-            console.error(err);
-            showToast('Failed to generate PDF');
+            console.error('PDF export failed:', err);
+            showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'));
         }
     };
 
