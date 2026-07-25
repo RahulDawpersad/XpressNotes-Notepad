@@ -1,6 +1,7 @@
 // ============================================
 // XpressNotes - Modern Notepad App with Supabase
 // + Text Highlighting & Image Attachment
+// + Auto Code Snippet Detection on Paste
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -214,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     const saveNote = async () => {
-        // Get content as HTML (preserves highlights + images)
+        // Get content as HTML (preserves highlights + images + code blocks)
         const content = notepad.innerHTML.trim();
         const title = noteTitle.value.trim() || 'Untitled Note';
 
@@ -280,10 +281,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (note) {
             activeNoteId = id;
             noteTitle.value = note.title;
-            // Load rich HTML content (highlights + images restore automatically)
+            // Load rich HTML content (highlights + images + code blocks restore automatically)
             notepad.innerHTML = note.content || '';
             // Re-attach remove listeners on any images in loaded note
             notepad.querySelectorAll('.note-image-wrapper').forEach(attachImageRemoveListener);
+            // Re-attach copy listeners + re-highlight any code blocks in loaded note
+            notepad.querySelectorAll('.code-block-wrapper').forEach(attachCodeBlockListeners);
             updateBreadcrumb(note.title);
             updateCounts();
             await loadSavedNotes();
@@ -632,9 +635,161 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
 
     // ============================================
+    // CODE SNIPPET DETECTION + INSERTION
+    // Detects pasted code (any language) and renders
+    // it as a syntax-highlighted snippet block, similar
+    // to how chat apps like Grok display code.
+    // ============================================
+
+    const LANGUAGE_LABELS = {
+        html: 'HTML', css: 'CSS', javascript: 'JavaScript', typescript: 'TypeScript',
+        python: 'Python', json: 'JSON', java: 'Java', cpp: 'C++', csharp: 'C#',
+        php: 'PHP', sql: 'SQL', bash: 'Shell', xml: 'XML', yaml: 'YAML',
+        plaintext: 'Code'
+    };
+
+    // Heuristic scoring to decide if pasted plain text is "code" vs normal prose
+    const isLikelyCode = (text) => {
+        if (!text) return false;
+        const trimmed = text.trim();
+        if (trimmed.length < 3) return false;
+
+        let score = 0;
+        const lines = trimmed.split('\n');
+
+        // Strong single-shot signals
+        if (/<!DOCTYPE\s+html/i.test(trimmed)) score += 3;
+        if (/<\/?[a-z][a-z0-9]*(\s[^<>]*)?>/i.test(trimmed)) score += 2; // html-ish tags
+        if (/^\s*(function|const|let|var|def|class|import|export|public|private|static|void|return|if\s*\(|for\s*\(|while\s*\(|package|#include|namespace)\b/m.test(trimmed)) score += 2;
+        if (/=>|===|!==|::|->/.test(trimmed)) score += 1;
+        if (/[{};]\s*$/m.test(trimmed)) score += 1;
+        if (/^\s{2,}\S/m.test(trimmed) && lines.length > 1) score += 1; // indentation across multiple lines
+        if (/^\s*[.#]?[\w-]+\s*\{[\s\S]*\}/m.test(trimmed) && /:\s*[^;{}]+;/.test(trimmed)) score += 2; // css rule
+        if (/#!\//.test(trimmed) || /^\s*\$\s+\S/m.test(trimmed)) score += 2; // shebang / shell prompt
+        if (/SELECT\s+.+\s+FROM\s+/i.test(trimmed)) score += 2;
+
+        const braceCount = (trimmed.match(/[{}]/g) || []).length;
+        if (braceCount >= 2) score += 1;
+
+        const semicolonEndedLines = lines.filter(l => /;\s*$/.test(l.trim())).length;
+        if (semicolonEndedLines >= 2) score += 1;
+
+        // Penalize things that look like normal prose (lots of sentence punctuation, few code symbols)
+        const looksLikeProse = /[.!?]\s/.test(trimmed) && !/[{}();]/.test(trimmed);
+        if (looksLikeProse) score -= 2;
+
+        return score >= 3;
+    };
+
+    // Best-effort language detection for the label + hljs class
+    const detectLanguage = (text) => {
+        const t = text.trim();
+        if (/<!DOCTYPE\s+html/i.test(t) || /<html[\s>]/i.test(t) || (/<\/?(div|span|body|head|script|style|meta|link|section|header|footer|button|input)\b/i.test(t))) return 'html';
+        if (/^\s*[.#]?[\w-]+\s*\{[\s\S]*\}/m.test(t) && /:\s*[^;{}]+;/.test(t) && !/\b(function|const|let|var|def |class )\b/.test(t)) return 'css';
+        if (/^\s*(def |import |elif |print\()/m.test(t) && !/;\s*$/m.test(t)) return 'python';
+        if (/#include\s*<|std::|int\s+main\s*\(/.test(t)) return 'cpp';
+        if (/\bpublic\s+class\b|System\.out\.println/.test(t)) return 'java';
+        if (/^\s*<\?php/.test(t)) return 'php';
+        if (/SELECT\s+.+\s+FROM\s+/i.test(t)) return 'sql';
+        if (/^\s*\{[\s\S]*\}\s*$/.test(t) && /"[\w-]+"\s*:/.test(t)) return 'json';
+        if (/^#!\/bin\/(ba)?sh/.test(t) || /^\s*\$\s+\S/m.test(t)) return 'bash';
+        if (/\b(function|const|let|var|=>|console\.log|require\(|import .* from)\b/.test(t)) return 'javascript';
+        return 'plaintext';
+    };
+
+    const attachCodeBlockListeners = (wrapper) => {
+        const btn = wrapper.querySelector('.code-copy-btn');
+        const codeEl = wrapper.querySelector('code');
+        if (btn && codeEl && !btn.dataset.bound) {
+            btn.dataset.bound = 'true';
+            btn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(codeEl.textContent);
+                    btn.classList.add('copied');
+                    const original = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+                    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 1500);
+                } catch {
+                    showToast('Could not copy code');
+                }
+            });
+        }
+        // Highlight if hljs is available and not already highlighted
+        if (window.hljs && codeEl && !codeEl.dataset.highlighted) {
+            try {
+                window.hljs.highlightElement(codeEl);
+            } catch (err) {
+                console.warn('Highlight failed', err);
+            }
+        }
+    };
+
+    const insertCodeBlock = (code, lang) => {
+        notepad.focus();
+        const sel = window.getSelection();
+        let range;
+
+        if (sel && sel.rangeCount > 0 && notepad.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+            range = sel.getRangeAt(0);
+            range.deleteContents();
+        } else {
+            range = document.createRange();
+            range.selectNodeContents(notepad);
+            range.collapse(false);
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+
+        const header = document.createElement('div');
+        header.className = 'code-block-header';
+        header.contentEditable = 'false';
+
+        const langLabel = document.createElement('span');
+        langLabel.className = 'code-lang';
+        langLabel.textContent = LANGUAGE_LABELS[lang] || 'Code';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'code-copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+
+        header.appendChild(langLabel);
+        header.appendChild(copyBtn);
+
+        const pre = document.createElement('pre');
+        const codeEl = document.createElement('code');
+        codeEl.className = `language-${lang}`;
+        codeEl.textContent = code;
+        pre.appendChild(codeEl);
+
+        wrapper.appendChild(header);
+        wrapper.appendChild(pre);
+        attachCodeBlockListeners(wrapper);
+
+        range.insertNode(wrapper);
+
+        // Add an empty paragraph after the block so the user can keep typing below it
+        const spacer = document.createElement('div');
+        spacer.innerHTML = '<br>';
+        wrapper.after(spacer);
+
+        // Move cursor into the spacer after the code block
+        const newRange = document.createRange();
+        newRange.setStart(spacer, 0);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+
+        updateCounts();
+    };
+
+    // ============================================
     // PASTE HANDLER
-    // Strips inline styles/colors from pasted HTML so
-    // text is always visible in both light and dark mode.
+    // 1) Images -> inline attachment
+    // 2) Detected code -> syntax-highlighted snippet block
+    // 3) Everything else -> strips inline styles/colors so
+    //    text is always visible in both light and dark mode.
     // ============================================
     notepad.addEventListener('paste', async (e) => {
         const items = e.clipboardData?.items;
@@ -656,6 +811,17 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         }
 
+        const plainText = e.clipboardData.getData('text/plain');
+
+        // Handle detected code -> render as snippet block
+        if (plainText && isLikelyCode(plainText)) {
+            e.preventDefault();
+            const lang = detectLanguage(plainText);
+            insertCodeBlock(plainText.replace(/\r\n/g, '\n'), lang);
+            showToast(`${LANGUAGE_LABELS[lang] || 'Code'} snippet pasted`);
+            return;
+        }
+
         // Strip inline styles/colors from pasted HTML
         e.preventDefault();
         const html = e.clipboardData.getData('text/html');
@@ -675,8 +841,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             document.execCommand('insertHTML', false, tmp.innerHTML);
         } else {
             // Fallback: insert as plain text
-            const text = e.clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, text);
+            document.execCommand('insertText', false, plainText);
         }
         updateCounts();
     });
@@ -818,6 +983,52 @@ const generatePDF = () => {
                 .pdf-content .note-image-remove {
                     display: none !important;
                 }
+
+                .pdf-content .code-block-wrapper {
+                    margin: 20px 0;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    border: 1px solid #383838;
+                    background: #1e1e1e;
+                    page-break-inside: avoid;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+
+                .pdf-content .code-block-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 14px;
+                    background: #262626;
+                    border-bottom: 1px solid #383838;
+                }
+
+                .pdf-content .code-lang {
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.6px;
+                    color: #9CA3AF;
+                }
+
+                .pdf-content .code-copy-btn {
+                    display: none !important;
+                }
+
+                .pdf-content .code-block-wrapper pre {
+                    margin: 0;
+                    padding: 16px;
+                    overflow-x: auto;
+                }
+
+                .pdf-content .code-block-wrapper code {
+                    font-family: 'JetBrains Mono', 'Fira Code', Consolas, Menlo, monospace;
+                    font-size: 12.5px;
+                    line-height: 1.6;
+                    color: #e6e6e6;
+                    white-space: pre-wrap;
+                }
                 
                 .pdf-footer {
                     margin-top: 60px;
@@ -858,7 +1069,7 @@ const generatePDF = () => {
                         color: #1A1A1A !important;
                     }
                     
-                    .pdf-content * {
+                    .pdf-content > *:not(.code-block-wrapper):not(.code-block-wrapper *) {
                         color: inherit !important;
                     }
                     
