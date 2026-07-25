@@ -788,6 +788,95 @@ body.dark-mode [style*="background-color"] {
 }
 
 /* ============================================
+   Code Snippet Blocks (auto-detected on paste)
+   ============================================ */
+.code-block-wrapper {
+    position: relative;
+    margin: 16px 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    background: #1e1e1e;
+    user-select: text;
+}
+
+.code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: #262626;
+    border-bottom: 1px solid #383838;
+    user-select: none;
+}
+
+.code-lang {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #9CA3AF;
+    font-family: 'Inter', sans-serif;
+}
+
+.code-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: #9CA3AF;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 9px;
+    border-radius: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.code-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.code-copy-btn.copied {
+    color: var(--accent);
+}
+
+.code-block-wrapper pre {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+    background: transparent;
+}
+
+.code-block-wrapper pre::-webkit-scrollbar {
+    height: 6px;
+}
+
+.code-block-wrapper pre::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 4px;
+}
+
+.code-block-wrapper code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Consolas, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e6e6e6;
+    white-space: pre;
+    background: transparent;
+}
+
+/* Prevent the highlighter/color toolbar treating code as regular text weirdly */
+.code-block-wrapper,
+.code-block-wrapper * {
+    -webkit-user-modify: read-only;
+}
+
+/* ============================================
    Toast Notification
    ============================================ */
 .toast {
@@ -1073,6 +1162,10 @@ body.dark-mode [style*="background-color"] {
 
     .meta-hint {
         display: none;
+    }
+
+    .code-block-wrapper code {
+        font-size: 12px;
     }
 }
 
