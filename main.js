@@ -788,8 +788,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     // PASTE HANDLER
     // 1) Images -> inline attachment
     // 2) Detected code -> syntax-highlighted snippet block
-    // 3) Everything else -> strips inline styles/colors so
-    //    text is always visible in both light and dark mode.
+    // 3) Everything else -> strips inline styles/colors AND
+    //    embedded <style> blocks / class attributes (Google
+    //    Docs & Word paste) so text is always visible in
+    //    both light and dark mode.
     // ============================================
     notepad.addEventListener('paste', async (e) => {
         const items = e.clipboardData?.items;
@@ -828,8 +830,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (html) {
             const tmp = document.createElement('div');
             tmp.innerHTML = html;
+
+            // Remove any embedded stylesheet blocks (Google Docs / Word paste)
+            tmp.querySelectorAll('style').forEach(el => el.remove());
+
             // Remove all inline style attributes
             tmp.querySelectorAll('[style]').forEach(el => el.removeAttribute('style'));
+
+            // Remove class attributes that could reference the removed stylesheet
+            tmp.querySelectorAll('[class]').forEach(el => el.removeAttribute('class'));
+
             // Remove legacy color/bgcolor/face attributes
             tmp.querySelectorAll('[color],[bgcolor],[face]').forEach(el => {
                 el.removeAttribute('color');
