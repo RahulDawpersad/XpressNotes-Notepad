@@ -186,6 +186,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             content: note.content,
             date: new Date(note.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
             time: new Date(note.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            shareToken: note.share_token || null,
+            isShared: !!note.is_shared,
         }));
     };
 
@@ -207,6 +209,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <div class="note-item-preview">${escapeHtml(getPreview(note.content))}</div>
                         <div class="note-item-date">${note.date}${note.time ? ' · ' + note.time : ''}</div>
                     </div>
+                    <button class="note-item-share${note.isShared ? ' shared' : ''}" data-id="${note.id}" title="${note.isShared ? 'Shared · manage link' : 'Share this note'}">
+                        <i class="fa-solid fa-share-nodes" data-id="${note.id}"></i>
+                    </button>
                     <button class="note-item-delete" data-id="${note.id}" title="Delete note">
                         <i class="fa-solid fa-trash-can" data-id="${note.id}"></i>
                     </button>
@@ -324,6 +329,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     deleteAllBtn.addEventListener('click', deleteAllNotes);
 
     savedNotesList.addEventListener('click', async (e) => {
+        const shareIconBtn = e.target.closest('.note-item-share');
+        if (shareIconBtn) { openShareModal(shareIconBtn.getAttribute('data-id')); return; }
         const deleteBtn = e.target.closest('.note-item-delete');
         if (deleteBtn) { await deleteNote(deleteBtn.getAttribute('data-id')); return; }
         const noteItem = e.target.closest('.note-item');
@@ -856,6 +863,131 @@ document.addEventListener('DOMContentLoaded', async function () {
         updateCounts();
     });
 
+    // ============================================
+    // SHARE FEATURE (public read-only link + WhatsApp)
+    // ============================================
+
+    const shareModal      = document.getElementById('shareModal');
+    const closeShareModal  = document.getElementById('closeShareModal');
+    const shareModalTitle = document.getElementById('shareModalTitle');
+    const shareLinkRow     = document.getElementById('shareLinkRow');
+    const shareLinkInput   = document.getElementById('shareLinkInput');
+    const shareCopyBtn     = document.getElementById('shareCopyBtn');
+    const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
+    const shareRevokeBtn   = document.getElementById('shareRevokeBtn');
+    const shareStartBtn    = document.getElementById('shareStartBtn');
+    const shareStatus      = document.getElementById('shareStatus');
+
+    let shareModalNoteId = null;
+
+    const getShareBaseUrl = () => {
+        const path = window.location.pathname;
+        const dir = path.substring(0, path.lastIndexOf('/') + 1);
+        return `${window.location.origin}${dir}`;
+    };
+
+    const getShareUrl = (token) => `${getShareBaseUrl()}view.html?n=${token}`;
+
+    const renderShareModal = (note) => {
+        shareModalTitle.textContent = `Share "${note.title || 'Untitled Note'}"`;
+        if (note.isShared && note.shareToken) {
+            const url = getShareUrl(note.shareToken);
+            shareLinkInput.value = url;
+            shareLinkRow.style.display = 'flex';
+            shareWhatsappBtn.style.display = 'flex';
+            shareRevokeBtn.style.display = 'inline-block';
+            shareStartBtn.style.display = 'none';
+            shareStatus.innerHTML = '<i class="fa-solid fa-circle"></i> This link is live — anyone with it can view this note (read-only).';
+            shareStatus.classList.add('is-live');
+            shareWhatsappBtn.href = `https://wa.me/?text=${encodeURIComponent(`Check out this note: ${note.title || 'Untitled Note'}\n${url}`)}`;
+        } else {
+            shareLinkRow.style.display = 'none';
+            shareWhatsappBtn.style.display = 'none';
+            shareRevokeBtn.style.display = 'none';
+            shareStartBtn.style.display = 'inline-block';
+            shareStatus.innerHTML = '<i class="fa-regular fa-eye-slash"></i> Not shared yet. Generate a link to share this note.';
+            shareStatus.classList.remove('is-live');
+        }
+    };
+
+    const fetchNoteForShare = async (id) => {
+        const { data, error } = await supabaseClient
+            .from('notes')
+            .select('id, title, share_token, is_shared')
+            .eq('id', id)
+            .single();
+        if (error || !data) { showToast('Could not load note'); return null; }
+        return { id: data.id, title: data.title, shareToken: data.share_token, isShared: !!data.is_shared };
+    };
+
+    const openShareModal = async (id) => {
+        if (!currentUser) { showToast('Please sign in first'); return; }
+        if (!id) { showToast('Save this note before sharing it'); return; }
+        const note = await fetchNoteForShare(id);
+        if (!note) return;
+        shareModalNoteId = id;
+        renderShareModal(note);
+        shareModal.style.display = 'block';
+    };
+
+    const generateShareLink = async () => {
+        if (!shareModalNoteId) return;
+        const token = (crypto.randomUUID && crypto.randomUUID()) ||
+            `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const { error } = await supabaseClient
+            .from('notes')
+            .update({ share_token: token, is_shared: true })
+            .eq('id', shareModalNoteId);
+        if (error) { showToast('Error: ' + error.message); return; }
+        showToast('Share link created');
+        const note = await fetchNoteForShare(shareModalNoteId);
+        if (note) renderShareModal(note);
+        await loadSavedNotes();
+    };
+
+    const revokeShareLink = async () => {
+        if (!shareModalNoteId) return;
+        const { error } = await supabaseClient
+            .from('notes')
+            .update({ share_token: null, is_shared: false })
+            .eq('id', shareModalNoteId);
+        if (error) { showToast('Error: ' + error.message); return; }
+        showToast('Link revoked');
+        const note = await fetchNoteForShare(shareModalNoteId);
+        if (note) renderShareModal(note);
+        await loadSavedNotes();
+    };
+
+    if (shareStartBtn) shareStartBtn.addEventListener('click', generateShareLink);
+    if (shareRevokeBtn) shareRevokeBtn.addEventListener('click', revokeShareLink);
+
+    if (shareCopyBtn) shareCopyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(shareLinkInput.value);
+            showToast('Link copied to clipboard');
+        } catch {
+            shareLinkInput.select();
+            document.execCommand('copy');
+            showToast('Link copied to clipboard');
+        }
+    });
+
+    if (closeShareModal) closeShareModal.addEventListener('click', () => { shareModal.style.display = 'none'; shareModalNoteId = null; });
+    window.addEventListener('click', (e) => {
+        if (e.target === shareModal) { shareModal.style.display = 'none'; shareModalNoteId = null; }
+    });
+
+    // Topbar Share button — shares whichever note is currently open in the editor
+    const shareCurrentBtn = document.createElement('button');
+    shareCurrentBtn.className = 'topbar-btn';
+    shareCurrentBtn.id        = 'shareBtn';
+    shareCurrentBtn.title     = 'Share this note';
+    shareCurrentBtn.innerHTML = '<i class="fa-solid fa-share-nodes"></i><span>Share</span>';
+    shareCurrentBtn.addEventListener('click', async () => {
+        if (!activeNoteId) { showToast('Save this note first, then share it'); return; }
+        await openShareModal(activeNoteId);
+    });
+    saveBtn.parentElement.insertBefore(shareCurrentBtn, saveBtn);
 
     // ============================================
 // PDF GENERATION
