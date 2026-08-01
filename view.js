@@ -7,8 +7,8 @@
 
 document.addEventListener('DOMContentLoaded', async function () {
     // Same project as main.js - anon key is safe to expose client-side.
-    const supabaseUrl = 'https://aldxadwfcizjqsrirhvu.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsZHhhZHdmY2l6anFzcmlyaHZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MDE2NDAsImV4cCI6MjEwMTE3NzY0MH0.GS4s4ZJVa1rqKzOHDMeIZ4WsKXNzJVaAoDOyYTzcGec';
+    const supabaseUrl = 'https://hchlauwjnjekoxfkwznp.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjaGxhdXdqbmpla294Zmt3em5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTA0NTUsImV4cCI6MjA4Nzc4NjQ1NX0.KEAXVXG8ML28Cix-A7SlGfvfeoVIekpJxhDhyRGrXwk';
     const { createClient } = supabase;
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
