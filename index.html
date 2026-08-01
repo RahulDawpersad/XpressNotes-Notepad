@@ -11,7 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="share.css">
 </head>
 
 <body>
@@ -81,7 +82,7 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <!-- Image button injected by JS -->
+                    <!-- Image + Share buttons injected by JS -->
                     <button class="topbar-btn" id="saveBtn" title="Save Note (Ctrl+S)">
                         <i class="fa-solid fa-floppy-disk"></i>
                         <span>Save</span>
@@ -147,6 +148,35 @@
             <input type="email" id="signUpEmail" placeholder="Email" autocomplete="email">
             <input type="password" id="signUpPassword" placeholder="Password" autocomplete="new-password">
             <button id="signUpSubmit">Sign Up</button>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal" id="shareModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeShareModal">&times;</span>
+            <h2 id="shareModalTitle"><i class="fa-solid fa-share-nodes"></i> Share Note</h2>
+
+            <div class="share-link-row" id="shareLinkRow" style="display:none;">
+                <input type="text" id="shareLinkInput" class="share-link-input" readonly>
+                <button id="shareCopyBtn" class="share-copy-btn" title="Copy link">
+                    <i class="fa-solid fa-copy"></i>
+                </button>
+            </div>
+
+            <div class="share-actions">
+                <button id="shareStartBtn" class="share-copy-btn" style="display:none;">
+                    <i class="fa-solid fa-link"></i> Generate Share Link
+                </button>
+                <a id="shareWhatsappBtn" class="share-whatsapp-btn" href="#" target="_blank" rel="noopener" style="display:none;">
+                    <i class="fa-brands fa-whatsapp"></i> Share on WhatsApp
+                </a>
+                <button id="shareRevokeBtn" class="share-revoke-btn" style="display:none;">
+                    <i class="fa-solid fa-ban"></i> Stop Sharing
+                </button>
+            </div>
+
+            <div class="share-status" id="shareStatus"></div>
         </div>
     </div>
 
