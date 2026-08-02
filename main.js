@@ -962,13 +962,24 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (shareRevokeBtn) shareRevokeBtn.addEventListener('click', revokeShareLink);
 
     if (shareCopyBtn) shareCopyBtn.addEventListener('click', async () => {
+        const flashCopied = () => {
+            const original = shareCopyBtn.innerHTML;
+            shareCopyBtn.classList.add('copied');
+            shareCopyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            setTimeout(() => {
+                shareCopyBtn.classList.remove('copied');
+                shareCopyBtn.innerHTML = original;
+            }, 1500);
+        };
         try {
             await navigator.clipboard.writeText(shareLinkInput.value);
             showToast('Link copied to clipboard');
+            flashCopied();
         } catch {
             shareLinkInput.select();
             document.execCommand('copy');
             showToast('Link copied to clipboard');
+            flashCopied();
         }
     });
 
