@@ -153,26 +153,31 @@
 
     <!-- Share Modal -->
     <div class="modal" id="shareModal">
-        <div class="modal-content">
+        <div class="modal-content share-modal-content">
             <span class="close-modal" id="closeShareModal">&times;</span>
-            <h2 id="shareModalTitle"><i class="fa-solid fa-share-nodes"></i> Share Note</h2>
 
-            <div class="share-link-row" id="shareLinkRow" style="display:none;">
-                <input type="text" id="shareLinkInput" class="share-link-input" readonly>
-                <button id="shareCopyBtn" class="share-copy-btn" title="Copy link">
-                    <i class="fa-solid fa-copy"></i>
+            <div class="share-modal-header">
+                <div class="share-modal-icon"><i class="fa-solid fa-share-nodes"></i></div>
+                <h2 id="shareModalTitle">Share Note</h2>
+            </div>
+
+            <div class="share-link-box" id="shareLinkRow" style="display:none;">
+                <i class="fa-solid fa-link share-link-icon"></i>
+                <input type="text" id="shareLinkInput" class="share-link-input" readonly spellcheck="false" autocomplete="off">
+                <button id="shareCopyBtn" class="share-copy-icon-btn" title="Copy link" type="button">
+                    <i class="fa-regular fa-copy"></i>
                 </button>
             </div>
 
             <div class="share-actions">
-                <button id="shareStartBtn" class="share-copy-btn" style="display:none;">
-                    <i class="fa-solid fa-link"></i> Generate Share Link
+                <button id="shareStartBtn" class="share-btn share-btn-primary" style="display:none;" type="button">
+                    <i class="fa-solid fa-link"></i><span>Generate Share Link</span>
                 </button>
-                <a id="shareWhatsappBtn" class="share-whatsapp-btn" href="#" target="_blank" rel="noopener" style="display:none;">
-                    <i class="fa-brands fa-whatsapp"></i> Share on WhatsApp
+                <a id="shareWhatsappBtn" class="share-btn share-btn-whatsapp" href="#" target="_blank" rel="noopener" style="display:none;">
+                    <i class="fa-brands fa-whatsapp"></i><span>Share on WhatsApp</span>
                 </a>
-                <button id="shareRevokeBtn" class="share-revoke-btn" style="display:none;">
-                    <i class="fa-solid fa-ban"></i> Stop Sharing
+                <button id="shareRevokeBtn" class="share-btn share-btn-danger" style="display:none;" type="button">
+                    <i class="fa-solid fa-ban"></i><span>Stop Sharing</span>
                 </button>
             </div>
 
