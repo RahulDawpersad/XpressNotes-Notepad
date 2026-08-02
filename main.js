@@ -121,9 +121,46 @@ document.addEventListener('DOMContentLoaded', async function () {
         return session;
     };
 
+    /**
+     * Masks an email address for privacy-friendly display.
+     * e.g. "jonathan.smith@gmail.com" -> "jo*******@gmail.com"
+     */
+    const maskEmail = (email) => {
+        if (!email || !email.includes('@')) return email || '';
+        const [local, domain] = email.split('@');
+        if (local.length <= 2) {
+            return `${local[0]}*@${domain}`;
+        }
+        const visible = local.slice(0, 2);
+        const stars = '*'.repeat(Math.min(local.length - 2, 6));
+        return `${visible}${stars}@${domain}`;
+    };
+
+    /**
+     * Populates the sidebar profile chip (avatar initial, display name,
+     * masked email) for the given Supabase user.
+     */
+    const renderUserProfile = (user) => {
+        const email = user.email || '';
+        const displayName =
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            (email.includes('@') ? email.split('@')[0] : 'Account');
+
+        const avatarEl = document.getElementById('profileAvatar');
+        const nameEl = document.getElementById('userDisplayName');
+
+        if (avatarEl) avatarEl.textContent = displayName.charAt(0);
+        if (nameEl) nameEl.textContent = displayName;
+        if (userEmail) {
+            userEmail.textContent = maskEmail(email);
+            userEmail.title = email; // full address available on hover for the user themselves
+        }
+    };
+
     const updateUIForAuth = async (isLoggedIn) => {
         if (isLoggedIn) {
-            if (currentUser) userEmail.textContent = currentUser.email;
+            if (currentUser) renderUserProfile(currentUser);
             signInOpenBtn.style.display = 'none';
             signUpOpenBtn.style.display = 'none';
             userProfile.style.display = 'flex';
@@ -154,44 +191,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             showToast('Please sign in to use notes');
         }
     };
-
-/**
- * Masks an email address for privacy-friendly display.
- * e.g. "jonathan.smith@gmail.com" -> "jo*******@gmail.com"
- */
-    function maskEmail(email) {
-    if (!email || !email.includes('@')) return email || '';
-    const [local, domain] = email.split('@');
-    if (local.length <= 2) {
-        return `${local[0]}*@${domain}`;
-    }
-    const visible = local.slice(0, 2);
-    const stars = '*'.repeat(Math.min(local.length - 2, 6));
-    return `${visible}${stars}@${domain}`;
-}
-
-/**
- * Call this after sign-in (in your onAuthStateChange / login success
- * handler) instead of setting userEmail.textContent directly.
- */
-function renderUserProfile(user) {
-    const email = user.email || '';
-    const displayName =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        (email.includes('@') ? email.split('@')[0] : 'Account');
- 
-    const avatarEl = document.getElementById('profileAvatar');
-    const nameEl = document.getElementById('userDisplayName');
-    const emailEl = document.getElementById('userEmail');
- 
-    if (avatarEl) avatarEl.textContent = displayName.charAt(0);
-    if (nameEl) nameEl.textContent = displayName;
-    if (emailEl) {
-        emailEl.textContent = maskEmail(email);
-        emailEl.title = email; // full address available on hover for the user themselves
-    }
-}
 
     // ============================================
     // Sidebar Toggle (Mobile)
