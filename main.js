@@ -155,6 +155,44 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     };
 
+/**
+ * Masks an email address for privacy-friendly display.
+ * e.g. "jonathan.smith@gmail.com" -> "jo*******@gmail.com"
+ */
+    function maskEmail(email) {
+    if (!email || !email.includes('@')) return email || '';
+    const [local, domain] = email.split('@');
+    if (local.length <= 2) {
+        return `${local[0]}*@${domain}`;
+    }
+    const visible = local.slice(0, 2);
+    const stars = '*'.repeat(Math.min(local.length - 2, 6));
+    return `${visible}${stars}@${domain}`;
+}
+
+/**
+ * Call this after sign-in (in your onAuthStateChange / login success
+ * handler) instead of setting userEmail.textContent directly.
+ */
+function renderUserProfile(user) {
+    const email = user.email || '';
+    const displayName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        (email.includes('@') ? email.split('@')[0] : 'Account');
+ 
+    const avatarEl = document.getElementById('profileAvatar');
+    const nameEl = document.getElementById('userDisplayName');
+    const emailEl = document.getElementById('userEmail');
+ 
+    if (avatarEl) avatarEl.textContent = displayName.charAt(0);
+    if (nameEl) nameEl.textContent = displayName;
+    if (emailEl) {
+        emailEl.textContent = maskEmail(email);
+        emailEl.title = email; // full address available on hover for the user themselves
+    }
+}
+
     // ============================================
     // Sidebar Toggle (Mobile)
     // ============================================
