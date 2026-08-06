@@ -10,8 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="share.css">
 </head>
 
@@ -116,7 +117,8 @@
                         <span class="meta-sep">·</span>
                         <span class="meta-hint"><i class="fa-solid fa-highlighter"></i> Select text to highlight</span>
                         <span class="meta-sep">·</span>
-                        <span class="meta-hint"><i class="fa-solid fa-image"></i> Paste screenshot or use Image button</span>
+                        <span class="meta-hint"><i class="fa-solid fa-image"></i> Paste screenshot or use Image
+                            button</span>
                     </div>
                     <!-- contenteditable replaces textarea for rich text support -->
                     <div id="notepad" class="note-textarea" contenteditable="true"
@@ -140,6 +142,10 @@
             <input type="email" id="signInEmail" placeholder="Email" autocomplete="email">
             <input type="password" id="signInPassword" placeholder="Password" autocomplete="current-password">
             <button id="signInSubmit">Sign In</button>
+            <div class="auth-divider"><span>or</span></div>
+            <button id="googleSignInBtn" class="google-btn" type="button">
+                <i class="fa-brands fa-google"></i> Continue with Google
+            </button>
         </div>
     </div>
 
@@ -151,6 +157,10 @@
             <input type="email" id="signUpEmail" placeholder="Email" autocomplete="email">
             <input type="password" id="signUpPassword" placeholder="Password" autocomplete="new-password">
             <button id="signUpSubmit">Sign Up</button>
+            <div class="auth-divider"><span>or</span></div>
+            <button id="googleSignUpBtn" class="google-btn" type="button">
+                <i class="fa-brands fa-google"></i> Continue with Google
+            </button>
         </div>
     </div>
 
@@ -166,7 +176,8 @@
 
             <div class="share-link-box" id="shareLinkRow" style="display:none;">
                 <i class="fa-solid fa-link share-link-icon"></i>
-                <input type="text" id="shareLinkInput" class="share-link-input" readonly spellcheck="false" autocomplete="off">
+                <input type="text" id="shareLinkInput" class="share-link-input" readonly spellcheck="false"
+                    autocomplete="off">
                 <button id="shareCopyBtn" class="share-copy-icon-btn" title="Copy link" type="button">
                     <i class="fa-regular fa-copy"></i>
                 </button>
@@ -176,7 +187,8 @@
                 <button id="shareStartBtn" class="share-btn share-btn-primary" style="display:none;" type="button">
                     <i class="fa-solid fa-link"></i><span>Generate Share Link</span>
                 </button>
-                <a id="shareWhatsappBtn" class="share-btn share-btn-whatsapp" href="#" target="_blank" rel="noopener" style="display:none;">
+                <a id="shareWhatsappBtn" class="share-btn share-btn-whatsapp" href="#" target="_blank" rel="noopener"
+                    style="display:none;">
                     <i class="fa-brands fa-whatsapp"></i><span>Share on WhatsApp</span>
                 </a>
                 <button id="shareRevokeBtn" class="share-btn share-btn-danger" style="display:none;" type="button">
