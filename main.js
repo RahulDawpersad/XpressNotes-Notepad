@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     const sidebar = document.getElementById('sidebar');
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
+    const googleSignInBtn = document.getElementById('googleSignInBtn');
+    const googleSignUpBtn = document.getElementById('googleSignUpBtn');
     const body = document.body;
 
     // Auth DOM Elements
@@ -120,6 +122,22 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         return session;
     };
+
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            currentUser = user;
+            await updateUIForAuth(true);
+            await loadSavedNotes();
+            signInModal.style.display = 'none';
+            signUpModal.style.display = 'none';
+            showToast('Logged in');
+        }
+        if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            await updateUIForAuth(false);
+        }
+    });
 
     /**
      * Masks an email address for privacy-friendly display.
@@ -425,6 +443,21 @@ document.addEventListener('DOMContentLoaded', async function () {
         await updateUIForAuth(false);
     });
 
+    const signInWithGoogle = async () => {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin + window.location.pathname
+            }
+        });
+        if (error) showToast('Google sign-in error: ' + error.message);
+        // No further action needed here — the browser redirects to Google,
+        // then back to this page, and onAuthStateChange below picks up the session.
+    };
+
+    if (googleSignInBtn) googleSignInBtn.addEventListener('click', signInWithGoogle);
+    if (googleSignUpBtn) googleSignUpBtn.addEventListener('click', signInWithGoogle);
+
     // ============================================
     // Theme Toggle
     // ============================================
@@ -452,23 +485,23 @@ document.addEventListener('DOMContentLoaded', async function () {
     // ============================================
 
     const HIGHLIGHT_COLORS = [
-        { label: 'Yellow',   value: '#FFF176' },
-        { label: 'Lime',     value: '#CCFF90' },
-        { label: 'Cyan',     value: '#80DEEA' },
-        { label: 'Pink',     value: '#F48FB1' },
-        { label: 'Peach',    value: '#FFCC80' },
+        { label: 'Yellow', value: '#FFF176' },
+        { label: 'Lime', value: '#CCFF90' },
+        { label: 'Cyan', value: '#80DEEA' },
+        { label: 'Pink', value: '#F48FB1' },
+        { label: 'Peach', value: '#FFCC80' },
         { label: 'Lavender', value: '#CE93D8' },
-        { label: 'Remove',   value: 'none'    },
+        { label: 'Remove', value: 'none' },
     ];
 
     const TEXT_COLORS = [
-        { label: 'Red',     value: '#EF4444' },
-        { label: 'Orange',  value: '#F97316' },
-        { label: 'Yellow',  value: '#EAB308' },
-        { label: 'Green',   value: '#22C55E' },
-        { label: 'Blue',    value: '#3B82F6' },
-        { label: 'Purple',  value: '#A855F7' },
-        { label: 'Default', value: 'none'    },
+        { label: 'Red', value: '#EF4444' },
+        { label: 'Orange', value: '#F97316' },
+        { label: 'Yellow', value: '#EAB308' },
+        { label: 'Green', value: '#22C55E' },
+        { label: 'Blue', value: '#3B82F6' },
+        { label: 'Purple', value: '#A855F7' },
+        { label: 'Default', value: 'none' },
     ];
 
     const hlToolbar = document.createElement('div');
@@ -514,12 +547,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         hlToolbar.style.display = '';
         hlToolbar.style.visibility = '';
 
-        let top  = rect.top + window.scrollY - tbH - 10;
+        let top = rect.top + window.scrollY - tbH - 10;
         let left = rect.left + window.scrollX + rect.width / 2 - tbW / 2;
         left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
         if (top < 8) top = rect.bottom + window.scrollY + 10;
 
-        hlToolbar.style.top  = top + 'px';
+        hlToolbar.style.top = top + 'px';
         hlToolbar.style.left = left + 'px';
     };
 
@@ -563,7 +596,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             sel.removeAllRanges();
             sel.addRange(savedRange);
 
-            const type  = btn.dataset.type;
+            const type = btn.dataset.type;
             const color = btn.dataset.color;
 
             if (type === 'highlight') {
@@ -593,7 +626,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Hidden file input
     const imgInput = document.createElement('input');
-    imgInput.type   = 'file';
+    imgInput.type = 'file';
     imgInput.accept = 'image/*';
     imgInput.style.display = 'none';
     document.body.appendChild(imgInput);
@@ -601,8 +634,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Inject "Image" button into topbar before Save
     const attachImgBtn = document.createElement('button');
     attachImgBtn.className = 'topbar-btn';
-    attachImgBtn.id        = 'attachImgBtn';
-    attachImgBtn.title     = 'Attach Image / Paste Screenshot';
+    attachImgBtn.id = 'attachImgBtn';
+    attachImgBtn.title = 'Attach Image / Paste Screenshot';
     attachImgBtn.innerHTML = '<i class="fa-solid fa-image"></i><span>Image</span>';
     attachImgBtn.addEventListener('click', () => {
         if (!currentUser) { showToast('Please sign in first'); return; }
@@ -612,7 +645,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     const fileToDataUrl = (file) => new Promise((res, rej) => {
         const reader = new FileReader();
-        reader.onload  = e => res(e.target.result);
+        reader.onload = e => res(e.target.result);
         reader.onerror = rej;
         reader.readAsDataURL(file);
     });
@@ -640,13 +673,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         wrapper.className = 'note-image-wrapper';
 
         const img = document.createElement('img');
-        img.src       = dataUrl;
+        img.src = dataUrl;
         img.className = 'note-image';
-        img.alt       = 'Attached image';
+        img.alt = 'Attached image';
 
         const rmBtn = document.createElement('button');
         rmBtn.className = 'note-image-remove';
-        rmBtn.title     = 'Remove image';
+        rmBtn.title = 'Remove image';
         rmBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
 
         wrapper.appendChild(img);
@@ -904,16 +937,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     // SHARE FEATURE (public read-only link + WhatsApp)
     // ============================================
 
-    const shareModal      = document.getElementById('shareModal');
-    const closeShareModal  = document.getElementById('closeShareModal');
+    const shareModal = document.getElementById('shareModal');
+    const closeShareModal = document.getElementById('closeShareModal');
     const shareModalTitle = document.getElementById('shareModalTitle');
-    const shareLinkRow     = document.getElementById('shareLinkRow');
-    const shareLinkInput   = document.getElementById('shareLinkInput');
-    const shareCopyBtn     = document.getElementById('shareCopyBtn');
+    const shareLinkRow = document.getElementById('shareLinkRow');
+    const shareLinkInput = document.getElementById('shareLinkInput');
+    const shareCopyBtn = document.getElementById('shareCopyBtn');
     const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
-    const shareRevokeBtn   = document.getElementById('shareRevokeBtn');
-    const shareStartBtn    = document.getElementById('shareStartBtn');
-    const shareStatus      = document.getElementById('shareStatus');
+    const shareRevokeBtn = document.getElementById('shareRevokeBtn');
+    const shareStartBtn = document.getElementById('shareStartBtn');
+    const shareStatus = document.getElementById('shareStatus');
 
     let shareModalNoteId = null;
 
@@ -1028,8 +1061,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Topbar Share button — shares whichever note is currently open in the editor
     const shareCurrentBtn = document.createElement('button');
     shareCurrentBtn.className = 'topbar-btn';
-    shareCurrentBtn.id        = 'shareBtn';
-    shareCurrentBtn.title     = 'Share this note';
+    shareCurrentBtn.id = 'shareBtn';
+    shareCurrentBtn.title = 'Share this note';
     shareCurrentBtn.innerHTML = '<i class="fa-solid fa-share-nodes"></i><span>Share</span>';
     shareCurrentBtn.addEventListener('click', async () => {
         if (!activeNoteId) { showToast('Save this note first, then share it'); return; }
@@ -1038,42 +1071,42 @@ document.addEventListener('DOMContentLoaded', async function () {
     saveBtn.parentElement.insertBefore(shareCurrentBtn, saveBtn);
 
     // ============================================
-// PDF GENERATION
-// ============================================
+    // PDF GENERATION
+    // ============================================
 
-// Get the PDF button element
-const pdfBtn = document.getElementById('pdfBtn');
+    // Get the PDF button element
+    const pdfBtn = document.getElementById('pdfBtn');
 
-// Function to generate and download PDF
-const generatePDF = () => {
-    const title = noteTitle.value.trim() || 'Untitled Note';
-    const content = notepad.innerHTML;
-    const date = getCurrentDate();
-    const time = getCurrentTime();
-    
-    // Store current theme
-    const isDarkMode = body.classList.contains('dark-mode');
-    
-    // Create a temporary iframe for PDF generation
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    iframe.style.visibility = 'hidden';
-    document.body.appendChild(iframe);
-    
-    // Get computed styles from the current theme
-    const computedStyle = getComputedStyle(body);
-    const bgColor = computedStyle.getPropertyValue('--bg-primary').trim() || (isDarkMode ? '#0F0F0F' : '#FAFAFA');
-    const textColor = computedStyle.getPropertyValue('--text-primary').trim() || (isDarkMode ? '#F0F0F0' : '#1A1A1A');
-    const accentColor = computedStyle.getPropertyValue('--accent').trim() || '#20B2AA';
-    
-    // Write the PDF content to the iframe
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    iframeDoc.write(`
+    // Function to generate and download PDF
+    const generatePDF = () => {
+        const title = noteTitle.value.trim() || 'Untitled Note';
+        const content = notepad.innerHTML;
+        const date = getCurrentDate();
+        const time = getCurrentTime();
+
+        // Store current theme
+        const isDarkMode = body.classList.contains('dark-mode');
+
+        // Create a temporary iframe for PDF generation
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
+
+        // Get computed styles from the current theme
+        const computedStyle = getComputedStyle(body);
+        const bgColor = computedStyle.getPropertyValue('--bg-primary').trim() || (isDarkMode ? '#0F0F0F' : '#FAFAFA');
+        const textColor = computedStyle.getPropertyValue('--text-primary').trim() || (isDarkMode ? '#F0F0F0' : '#1A1A1A');
+        const accentColor = computedStyle.getPropertyValue('--accent').trim() || '#20B2AA';
+
+        // Write the PDF content to the iframe
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        iframeDoc.write(`
         <!DOCTYPE html>
         <html>
         <head>
@@ -1306,106 +1339,106 @@ const generatePDF = () => {
         </body>
         </html>
     `);
-    
-    iframeDoc.close();
-    
-    // Wait for images to load
-    const images = iframeDoc.querySelectorAll('img');
-    let loadedImages = 0;
-    const totalImages = images.length;
-    
-    const printWhenReady = () => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        
-        // Clean up after print dialog closes
-        setTimeout(() => {
-            document.body.removeChild(iframe);
-        }, 1000);
-    };
-    
-    if (totalImages === 0) {
-        setTimeout(printWhenReady, 500);
-    } else {
-        images.forEach(img => {
-            if (img.complete) {
-                loadedImages++;
-                if (loadedImages === totalImages) {
-                    setTimeout(printWhenReady, 500);
-                }
-            } else {
-                img.onload = () => {
-                    loadedImages++;
-                    if (loadedImages === totalImages) {
-                        setTimeout(printWhenReady, 500);
-                    }
-                };
-                img.onerror = () => {
-                    loadedImages++;
-                    if (loadedImages === totalImages) {
-                        setTimeout(printWhenReady, 500);
-                    }
-                };
-            }
-        });
-    }
-};
 
-// Add event listener for PDF button
-pdfBtn.addEventListener('click', () => {
-    generatePDF();
-});
+        iframeDoc.close();
 
-// Add keyboard shortcut Ctrl+Shift+P for PDF
-document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
-        e.preventDefault();
-        generatePDF();
-    }
-});
+        // Wait for images to load
+        const images = iframeDoc.querySelectorAll('img');
+        let loadedImages = 0;
+        const totalImages = images.length;
 
-// Also add a PDF option in the context menu for saved notes
-savedNotesList.addEventListener('contextmenu', async (e) => {
-    const noteItem = e.target.closest('.note-item');
-    if (noteItem) {
-        e.preventDefault();
-        const noteId = noteItem.getAttribute('data-id');
-        
-        // Load the note temporarily, generate PDF, then restore current note
-        const savedNotes = await getNotes();
-        const note = savedNotes.find(n => n.id === noteId);
-        
-        if (note) {
-            // Store current state
-            const currentContent = notepad.innerHTML;
-            const currentTitle = noteTitle.value;
-            const currentActiveNoteId = activeNoteId;
-            
-            // Load the selected note
-            activeNoteId = noteId;
-            noteTitle.value = note.title;
-            notepad.innerHTML = note.content || '';
-            
-            // Generate PDF
+        const printWhenReady = () => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+
+            // Clean up after print dialog closes
             setTimeout(() => {
-                generatePDF();
-                
-                // Restore previous state after a short delay
-                setTimeout(() => {
-                    activeNoteId = currentActiveNoteId;
-                    noteTitle.value = currentTitle;
-                    notepad.innerHTML = currentContent;
-                    if (currentActiveNoteId) {
-                        updateBreadcrumb(currentTitle || 'New Note');
-                    } else {
-                        updateBreadcrumb('New Note');
+                document.body.removeChild(iframe);
+            }, 1000);
+        };
+
+        if (totalImages === 0) {
+            setTimeout(printWhenReady, 500);
+        } else {
+            images.forEach(img => {
+                if (img.complete) {
+                    loadedImages++;
+                    if (loadedImages === totalImages) {
+                        setTimeout(printWhenReady, 500);
                     }
-                    updateCounts();
-                }, 1500);
-            }, 300);
+                } else {
+                    img.onload = () => {
+                        loadedImages++;
+                        if (loadedImages === totalImages) {
+                            setTimeout(printWhenReady, 500);
+                        }
+                    };
+                    img.onerror = () => {
+                        loadedImages++;
+                        if (loadedImages === totalImages) {
+                            setTimeout(printWhenReady, 500);
+                        }
+                    };
+                }
+            });
         }
-    }
-});
+    };
+
+    // Add event listener for PDF button
+    pdfBtn.addEventListener('click', () => {
+        generatePDF();
+    });
+
+    // Add keyboard shortcut Ctrl+Shift+P for PDF
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
+            e.preventDefault();
+            generatePDF();
+        }
+    });
+
+    // Also add a PDF option in the context menu for saved notes
+    savedNotesList.addEventListener('contextmenu', async (e) => {
+        const noteItem = e.target.closest('.note-item');
+        if (noteItem) {
+            e.preventDefault();
+            const noteId = noteItem.getAttribute('data-id');
+
+            // Load the note temporarily, generate PDF, then restore current note
+            const savedNotes = await getNotes();
+            const note = savedNotes.find(n => n.id === noteId);
+
+            if (note) {
+                // Store current state
+                const currentContent = notepad.innerHTML;
+                const currentTitle = noteTitle.value;
+                const currentActiveNoteId = activeNoteId;
+
+                // Load the selected note
+                activeNoteId = noteId;
+                noteTitle.value = note.title;
+                notepad.innerHTML = note.content || '';
+
+                // Generate PDF
+                setTimeout(() => {
+                    generatePDF();
+
+                    // Restore previous state after a short delay
+                    setTimeout(() => {
+                        activeNoteId = currentActiveNoteId;
+                        noteTitle.value = currentTitle;
+                        notepad.innerHTML = currentContent;
+                        if (currentActiveNoteId) {
+                            updateBreadcrumb(currentTitle || 'New Note');
+                        } else {
+                            updateBreadcrumb('New Note');
+                        }
+                        updateCounts();
+                    }, 1500);
+                }, 300);
+            }
+        }
+    });
 
     // ============================================
     // Initialize
