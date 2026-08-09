@@ -774,12 +774,14 @@ document.addEventListener('DOMContentLoaded', async function () {
         return 'plaintext';
     };
 
+    const boundCopyButtons = new WeakSet();
+
     const attachCodeBlockListeners = (wrapper) => {
     const btn = wrapper.querySelector('.code-copy-btn');
     const codeEl = wrapper.querySelector('code');
 
-    if (btn && codeEl && !btn.dataset.bound) {
-        btn.dataset.bound = 'true';
+    if (btn && codeEl && !boundCopyButtons.has(btn)) {
+        boundCopyButtons.add(btn);
         btn.addEventListener('click', async (e) => {
             console.log('Copy button clicked');
             e.preventDefault();
@@ -788,7 +790,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             const textToCopy = codeEl.textContent;
             let copied = false;
 
-            // Primary: Clipboard API (requires HTTPS or localhost)
             if (navigator.clipboard && window.isSecureContext) {
                 try {
                     await navigator.clipboard.writeText(textToCopy);
@@ -798,7 +799,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
 
-            // Fallback: hidden textarea + execCommand (works over HTTP too)
             if (!copied) {
                 try {
                     const tempTextarea = document.createElement('textarea');
@@ -828,7 +828,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // Fix: mark as highlighted so we never re-run hljs on the same node
     if (window.hljs && codeEl && !codeEl.dataset.highlighted) {
         try {
             window.hljs.highlightElement(codeEl);
