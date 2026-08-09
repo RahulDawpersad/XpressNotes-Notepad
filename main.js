@@ -781,6 +781,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (btn && codeEl && !btn.dataset.bound) {
         btn.dataset.bound = 'true';
         btn.addEventListener('click', async (e) => {
+            console.log('Copy button clicked');
             e.preventDefault();
             e.stopPropagation();
 
