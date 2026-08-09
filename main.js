@@ -775,31 +775,68 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     const attachCodeBlockListeners = (wrapper) => {
-        const btn = wrapper.querySelector('.code-copy-btn');
-        const codeEl = wrapper.querySelector('code');
-        if (btn && codeEl && !btn.dataset.bound) {
-            btn.dataset.bound = 'true';
-            btn.addEventListener('click', async () => {
+    const btn = wrapper.querySelector('.code-copy-btn');
+    const codeEl = wrapper.querySelector('code');
+
+    if (btn && codeEl && !btn.dataset.bound) {
+        btn.dataset.bound = 'true';
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const textToCopy = codeEl.textContent;
+            let copied = false;
+
+            // Primary: Clipboard API (requires HTTPS or localhost)
+            if (navigator.clipboard && window.isSecureContext) {
                 try {
-                    await navigator.clipboard.writeText(codeEl.textContent);
-                    btn.classList.add('copied');
-                    const original = btn.innerHTML;
-                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
-                    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 1500);
-                } catch {
-                    showToast('Could not copy code');
+                    await navigator.clipboard.writeText(textToCopy);
+                    copied = true;
+                } catch (err) {
+                    console.warn('Clipboard API failed, trying fallback:', err);
                 }
-            });
-        }
-        // Highlight if hljs is available and not already highlighted
-        if (window.hljs && codeEl && !codeEl.dataset.highlighted) {
-            try {
-                window.hljs.highlightElement(codeEl);
-            } catch (err) {
-                console.warn('Highlight failed', err);
             }
+
+            // Fallback: hidden textarea + execCommand (works over HTTP too)
+            if (!copied) {
+                try {
+                    const tempTextarea = document.createElement('textarea');
+                    tempTextarea.value = textToCopy;
+                    tempTextarea.style.position = 'fixed';
+                    tempTextarea.style.left = '-9999px';
+                    tempTextarea.style.top = '0';
+                    document.body.appendChild(tempTextarea);
+                    tempTextarea.focus();
+                    tempTextarea.select();
+                    copied = document.execCommand('copy');
+                    document.body.removeChild(tempTextarea);
+                } catch (err) {
+                    console.error('Fallback copy failed:', err);
+                }
+            }
+
+            if (copied) {
+                btn.classList.add('copied');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+                setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 1500);
+            } else {
+                console.error('Copy failed: no clipboard method available. isSecureContext =', window.isSecureContext);
+                showToast('Could not copy — try selecting the code manually');
+            }
+        });
+    }
+
+    // Fix: mark as highlighted so we never re-run hljs on the same node
+    if (window.hljs && codeEl && !codeEl.dataset.highlighted) {
+        try {
+            window.hljs.highlightElement(codeEl);
+            codeEl.dataset.highlighted = 'true';
+        } catch (err) {
+            console.warn('Highlight failed', err);
         }
-    };
+    }
+};
 
     const insertCodeBlock = (code, lang) => {
         notepad.focus();
